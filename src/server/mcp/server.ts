@@ -74,7 +74,7 @@ import {
   listTrendbriefOpportunitiesTool,
   setTrendbriefOpportunityStatusTool,
   recordTrendbriefOutcomeTool,
-} from "./tools/trendbrief-tools";
+} from "@/server/mcp/tools/trendbrief-tools";
 
 type ToolSchema = z.ZodType | z.ZodRawShape;
 

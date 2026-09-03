@@ -19,6 +19,17 @@ const dateSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .describe("Inclusive YYYY-MM-DD date. Provide both start and end.");
 
+function invalidRequest(
+  meta: ReturnType<typeof buildProjectMeta>,
+  message: string,
+) {
+  return mcpResponse({
+    text: message,
+    meta,
+    structuredContent: { ok: false, reason: "invalid_request" },
+  });
+}
+
 // --- analyze_trendbrief_opportunities ---------------------------------------
 
 const analyzeInputSchema = z.strictObject({
@@ -43,6 +54,15 @@ export const analyzeTrendbriefOpportunitiesTool = {
     },
   },
   handler: withMcpProjectAuth(async (args: AnalyzeArgs, context) => {
+    const meta = buildProjectMeta(context, args.projectId);
+    // A half-specified explicit range would silently fall back to a default window.
+    if (Boolean(args.startDate) !== Boolean(args.endDate)) {
+      return invalidRequest(
+        meta,
+        "Provide both startDate and endDate, or neither (use the default window instead).",
+      );
+    }
+
     const result = await TrendbriefAnalysisService.analyzeProject({
       organizationId: context.auth.organizationId,
       projectId: args.projectId,
@@ -54,7 +74,7 @@ export const analyzeTrendbriefOpportunitiesTool = {
         `Analysis complete: ${result.evidenceIngested} evidence rows ingested, ` +
         `${result.opportunitiesDetected} candidates detected ` +
         `(${result.opportunitiesCreated} new, ${result.opportunitiesUpdated} updated).`,
-      meta: buildProjectMeta(context, args.projectId),
+      meta,
       structuredContent: result,
     });
   }),

@@ -52,16 +52,18 @@ function classifyOutcome(
     return "inconclusive";
   const positionDelta = baseline.position - comparison.position;
   const clicksDelta = comparison.clicks - baseline.clicks;
-  if (
-    positionDelta >= OUTCOME_IMPROVEMENT_POSITION_THRESHOLD ||
-    clicksDelta > 0
-  )
-    return "improved";
-  if (
-    positionDelta <= -OUTCOME_IMPROVEMENT_POSITION_THRESHOLD ||
-    clicksDelta < 0
-  )
-    return "declined";
+  // Position and clicks can disagree (e.g. position collapses while clicks
+  // tick up slightly). Neither direction may claim "improved"/"declined" off
+  // one signal alone when the other signal moved past the threshold the
+  // opposite way in the same comparison.
+  const positionImproved =
+    positionDelta >= OUTCOME_IMPROVEMENT_POSITION_THRESHOLD;
+  const positionWorsened =
+    positionDelta <= -OUTCOME_IMPROVEMENT_POSITION_THRESHOLD;
+  if (positionImproved && !positionWorsened) return "improved";
+  if (clicksDelta > 0 && !positionWorsened) return "improved";
+  if (positionWorsened && !positionImproved) return "declined";
+  if (clicksDelta < 0 && !positionImproved) return "declined";
   return "unchanged";
 }
 
@@ -130,7 +132,7 @@ async function recordOutcome(
 
   return TrendbriefOutcomeRepository.record({
     opportunityId: input.opportunityId,
-    organizationId: input.organizationId,
+    organizationId: opportunity.organizationId,
     projectId: input.projectId,
     baselineWindowStart: input.baselineWindow.start,
     baselineWindowEnd: input.baselineWindow.end,

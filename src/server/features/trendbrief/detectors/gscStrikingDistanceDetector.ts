@@ -3,7 +3,10 @@ import type {
   GscEvidenceMetrics,
 } from "../domain/types";
 import type { TrendbriefEvidence } from "../repositories/TrendbriefEvidenceRepository";
-import { computeConfidenceScore } from "../scoring/confidence";
+import {
+  computeConfidenceScore,
+  computeRelevanceComponent,
+} from "../scoring/confidence";
 import {
   EFFORT_IMPROVE_EXISTING_PAGE,
   LOW_CTR_THRESHOLD,
@@ -65,7 +68,7 @@ export function detectGscStrikingDistanceCandidates(input: {
     const relevance = matchCommercialRelevance(row.subjectUrl, input.keyPages);
     const demand = computeDemandScore(metrics.impressions);
     const reachability = computeReachabilityScore(metrics.position);
-    const businessRelevance = relevance.status === "confirmed" ? 1 : 0.5;
+    const businessRelevance = computeRelevanceComponent(relevance.status);
     const confidence = computeConfidenceScore(
       {
         observationEndDate: row.observationEnd,

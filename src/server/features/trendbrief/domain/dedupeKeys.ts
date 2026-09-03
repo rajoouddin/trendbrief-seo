@@ -1,5 +1,9 @@
 import type { TrendbriefEvidenceSource, TrendbriefEvidenceType } from "./types";
 
+// `subjectQuery` is deliberately normalized with `?? ""`: a null subjectQuery
+// (page-level evidence with no associated query) and an empty-string
+// subjectQuery are meant to collapse onto the same key, not be treated as
+// distinct evidence.
 export function computeEvidenceDedupeKey(input: {
   organizationId: string;
   projectId: string;

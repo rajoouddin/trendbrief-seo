@@ -45,7 +45,9 @@ function computeSampleSizeScore(impressions: number): number {
 // pages on a project's own domain are plausibly relevant even without an
 // explicit key-page match. This is a deliberate, documented simplification —
 // see specs/0012 "Commercial relevance limitations".
-function computeRelevanceComponent(status: TrendbriefRelevanceStatus): number {
+export function computeRelevanceComponent(
+  status: TrendbriefRelevanceStatus,
+): number {
   return status === "confirmed" ? 1 : 0.5;
 }
 

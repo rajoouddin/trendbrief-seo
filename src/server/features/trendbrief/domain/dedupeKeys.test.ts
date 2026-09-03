@@ -43,7 +43,7 @@ describe("computeEvidenceDedupeKey", () => {
     expect(a).not.toBe(b);
   });
 
-  it("treats a null subjectQuery distinctly from an empty string", () => {
+  it("collapses a null subjectQuery onto the empty string, so both dedupe identically", () => {
     const base = {
       organizationId: "org_1",
       projectId: "project_1",

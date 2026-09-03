@@ -67,7 +67,7 @@ async function transitionOpportunity(
   if (!updated) throw new AppError("NOT_FOUND");
 
   await TrendbriefActionRepository.recordAction({
-    organizationId: input.organizationId,
+    organizationId: opportunity.organizationId,
     projectId: input.projectId,
     opportunityId: input.opportunityId,
     actionType: input.actionType,

@@ -84,6 +84,20 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
     expect(outcome.classification).toBe("declined");
   });
 
+  it("classifies conflicting signals (position collapses, clicks tick up slightly) as something other than improved", async () => {
+    mocks.getPerformance
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 10, impressions: 300, ctr: 0.033, position: 6 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 11, impressions: 300, ctr: 0.037, position: 15 }],
+      });
+
+    const outcome = await TrendbriefOutcomeService.recordOutcome(baseInput);
+
+    expect(outcome.classification).toBe("declined");
+  });
+
   it("classifies as inconclusive when either window has no data", async () => {
     mocks.getPerformance
       .mockResolvedValueOnce({ rows: [] })

@@ -132,7 +132,25 @@ describe("TrendBrief MCP tools — tenant authorization", () => {
         projectId: "project_1",
       }),
     );
-    expect(result.structuredContent?.opportunitiesCreated).toBe(1);
+    expect(result.structuredContent).toMatchObject({ opportunitiesCreated: 1 });
+  });
+
+  it("rejects analyze_trendbrief_opportunities given only one of startDate/endDate, without silently substituting a default window", async () => {
+    mocks.getProjectForOrganization.mockResolvedValue({
+      id: "project_1",
+      organizationId: "org_123",
+    });
+
+    const result = await analyzeTrendbriefOpportunitiesTool.handler(
+      { projectId: "project_1", startDate: "2026-08-01" },
+      toolContext,
+    );
+
+    expect(result.structuredContent).toMatchObject({
+      ok: false,
+      reason: "invalid_request",
+    });
+    expect(mocks.analyzeProject).not.toHaveBeenCalled();
   });
 });
 

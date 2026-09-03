@@ -9,6 +9,13 @@ export function roundComponent(value: number): number {
 // and `now`, floor-rounded, never negative.
 export function daysBetween(isoDate: string, now: Date): number {
   const then = new Date(isoDate).getTime();
+  // An unparseable isoDate would otherwise propagate NaN silently through
+  // confidence scoring and into a `real` database column. Not reachable
+  // today (dates always come from GSC's own response), but fail loudly
+  // rather than let it slip through.
+  if (Number.isNaN(then)) {
+    throw new Error(`daysBetween: unparseable date "${isoDate}"`);
+  }
   const diffMs = now.getTime() - then;
   return Math.max(0, Math.floor(diffMs / (24 * 60 * 60 * 1000)));
 }
