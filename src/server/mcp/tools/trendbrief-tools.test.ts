@@ -169,8 +169,9 @@ describe("list_trendbrief_opportunities", () => {
     );
 
     expect(result.structuredContent?.rows).toHaveLength(1);
-    expect(
-      (result.structuredContent?.rows as Array<{ id: string }>)[0]!.id,
-    ).toBe("opp_2");
+    const rows = result.structuredContent?.rows as
+      | Array<{ id: string }>
+      | undefined;
+    expect(rows?.[0]?.id).toBe("opp_2");
   });
 });

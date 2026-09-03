@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrendbriefEvidenceRepository } from "./TrendbriefEvidenceRepository";
 
+type InsertedEvidenceValues = {
+  organizationId: string;
+  projectId: string;
+  dedupeKey: string;
+  metrics: string;
+};
+
 const mocks = vi.hoisted(() => ({
   insert: vi.fn(),
   select: vi.fn(),
+  insertedValues: undefined as InsertedEvidenceValues | undefined,
+  conflictTarget: undefined as unknown,
 }));
 
 vi.mock("cloudflare:workers", () => ({ env: {} }));
@@ -12,6 +21,8 @@ vi.mock("@/db", () => ({ db: { insert: mocks.insert, select: mocks.select } }));
 describe("TrendbriefEvidenceRepository.upsert", () => {
   beforeEach(() => {
     mocks.insert.mockReset();
+    mocks.insertedValues = undefined;
+    mocks.conflictTarget = undefined;
     const builder = {
       values: vi.fn(),
       onConflictDoUpdate: vi.fn(),
@@ -19,8 +30,16 @@ describe("TrendbriefEvidenceRepository.upsert", () => {
         .fn()
         .mockResolvedValue([{ id: "evidence_1", dedupeKey: "key_1" }]),
     };
-    builder.values.mockReturnValue(builder);
-    builder.onConflictDoUpdate.mockReturnValue(builder);
+    builder.values.mockImplementation((values: InsertedEvidenceValues) => {
+      mocks.insertedValues = values;
+      return builder;
+    });
+    builder.onConflictDoUpdate.mockImplementation(
+      (input: { target: unknown }) => {
+        mocks.conflictTarget = input.target;
+        return builder;
+      },
+    );
     mocks.insert.mockReturnValue(builder);
   });
 
@@ -40,8 +59,7 @@ describe("TrendbriefEvidenceRepository.upsert", () => {
     });
 
     expect(row.id).toBe("evidence_1");
-    const insertedValues =
-      mocks.insert.mock.results[0]!.value.values.mock.calls[0][0];
+    const insertedValues = mocks.insertedValues!;
     expect(insertedValues.organizationId).toBe("org_1");
     expect(insertedValues.projectId).toBe("project_1");
     expect(insertedValues.dedupeKey).toBe("key_1");
@@ -51,9 +69,7 @@ describe("TrendbriefEvidenceRepository.upsert", () => {
       ctr: 0.05,
       position: 8,
     });
-    const conflictArgs =
-      mocks.insert.mock.results[0]!.value.onConflictDoUpdate.mock.calls[0][0];
-    expect(conflictArgs.target).toBeDefined();
+    expect(mocks.conflictTarget).toBeDefined();
   });
 });
 

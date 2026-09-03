@@ -3,7 +3,10 @@ import { TrendbriefAnalysisService } from "@/server/features/trendbrief/services
 import { TrendbriefOpportunityLifecycleService } from "@/server/features/trendbrief/services/TrendbriefOpportunityLifecycleService";
 import { TrendbriefOutcomeService } from "@/server/features/trendbrief/services/TrendbriefOutcomeService";
 import { TrendbriefOpportunityRepository } from "@/server/features/trendbrief/repositories/TrendbriefOpportunityRepository";
-import { TrendbriefRecommendationRepository } from "@/server/features/trendbrief/repositories/TrendbriefRecommendationRepository";
+import {
+  TrendbriefRecommendationRepository,
+  type ProposedAction,
+} from "@/server/features/trendbrief/repositories/TrendbriefRecommendationRepository";
 import { TRENDBRIEF_OPPORTUNITY_STATUSES } from "@/server/features/trendbrief/domain/types";
 import { buildProjectMeta } from "@/server/mcp/context";
 import { mcpResponse } from "@/server/mcp/formatters";
@@ -106,13 +109,17 @@ export const listTrendbriefOpportunitiesTool = {
           impactScore: opportunity.impactScore,
           effortScore: opportunity.effortScore,
           relevanceStatus: opportunity.relevanceStatus,
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- rationaleCodes is written by TrendbriefOpportunityRepository from a string[] input via JSON.stringify; this is a trusted, self-written payload
           rationaleCodes: JSON.parse(opportunity.rationaleCodes) as string[],
           firstDetectedAt: opportunity.firstDetectedAt,
           lastDetectedAt: opportunity.lastDetectedAt,
           recommendation: recommendation
             ? {
                 groundedSummary: recommendation.groundedSummary,
-                proposedAction: JSON.parse(recommendation.proposedAction),
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- proposedAction is written by TrendbriefRecommendationRepository from a ProposedAction input via JSON.stringify; this is a trusted, self-written payload
+                proposedAction: JSON.parse(
+                  recommendation.proposedAction,
+                ) as ProposedAction,
               }
             : null,
         };

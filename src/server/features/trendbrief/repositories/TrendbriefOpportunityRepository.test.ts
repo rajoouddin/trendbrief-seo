@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrendbriefOpportunityRepository } from "./TrendbriefOpportunityRepository";
 
+type OpportunityUpdateSet = {
+  status: string;
+  priorityScore: number;
+};
+
 const mocks = vi.hoisted(() => ({
   select: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
+  updateSetArgs: undefined as OpportunityUpdateSet | undefined,
 }));
 
 vi.mock("cloudflare:workers", () => ({ env: {} }));
@@ -47,6 +53,7 @@ describe("TrendbriefOpportunityRepository.upsertFromDetection", () => {
     mocks.select.mockReset();
     mocks.insert.mockReset();
     mocks.update.mockReset();
+    mocks.updateSetArgs = undefined;
   });
 
   it("inserts a new row with status 'detected' when no existing opportunity matches the dedupeKey", async () => {
@@ -81,7 +88,10 @@ describe("TrendbriefOpportunityRepository.upsertFromDetection", () => {
         .fn()
         .mockResolvedValue([{ id: "opp_1", status: "accepted" }]),
     };
-    updateBuilder.set.mockReturnValue(updateBuilder);
+    updateBuilder.set.mockImplementation((values: OpportunityUpdateSet) => {
+      mocks.updateSetArgs = values;
+      return updateBuilder;
+    });
     updateBuilder.where.mockReturnValue(updateBuilder);
     mocks.update.mockReturnValue(updateBuilder);
 
@@ -90,7 +100,7 @@ describe("TrendbriefOpportunityRepository.upsertFromDetection", () => {
 
     expect(wasNew).toBe(false);
     expect(opportunity.status).toBe("accepted");
-    const setArgs = updateBuilder.set.mock.calls[0][0];
+    const setArgs = mocks.updateSetArgs!;
     expect(setArgs.status).toBe("accepted");
     expect(setArgs.priorityScore).toBe(67);
     expect(mocks.insert).not.toHaveBeenCalled();

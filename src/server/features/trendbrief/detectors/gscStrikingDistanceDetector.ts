@@ -51,6 +51,7 @@ export function detectGscStrikingDistanceCandidates(input: {
 
   for (const row of input.evidence) {
     if (!row.subjectQuery) continue;
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- row.metrics is written by TrendbriefEvidenceRepository.upsert via JSON.stringify(input.metrics), where input.metrics is a GscEvidenceMetrics; this is a trusted, self-written payload
     const metrics = JSON.parse(row.metrics) as GscEvidenceMetrics;
 
     if (

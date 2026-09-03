@@ -1,10 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrendbriefAnalysisService } from "./TrendbriefAnalysisService";
+import type {
+  DetectionUpsertInput,
+  TrendbriefOpportunity,
+} from "../repositories/TrendbriefOpportunityRepository";
 
 const mocks = vi.hoisted(() => ({
   collectGscStrikingDistanceEvidence: vi.fn(),
   listKeyPages: vi.fn(),
-  upsertFromDetection: vi.fn(),
+  upsertFromDetection: vi.fn<
+    (input: DetectionUpsertInput) => Promise<{
+      opportunity: Pick<TrendbriefOpportunity, "id" | "status">;
+      wasNew: boolean;
+    }>
+  >(),
   linkEvidence: vi.fn(),
   upsertForOpportunity: vi.fn(),
 }));

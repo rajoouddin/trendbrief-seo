@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrendbriefOutcomeService } from "./TrendbriefOutcomeService";
+import type { TrendbriefOutcomeRepository } from "../repositories/TrendbriefOutcomeRepository";
+
+type RecordInput = Parameters<typeof TrendbriefOutcomeRepository.record>[0];
+// The double below mirrors the repository's own hardcoded attributionNote
+// (see the comment above the mockImplementation) rather than the full
+// TrendbriefOutcome row shape, since that's all this file's assertions read.
+type RecordResult = RecordInput & { id: string; attributionNote: string };
 
 const mocks = vi.hoisted(() => ({
   getForProject: vi.fn(),
   getPerformance: vi.fn(),
-  record: vi.fn(),
+  record: vi.fn<(input: RecordInput) => Promise<RecordResult>>(),
 }));
 
 vi.mock("../repositories/TrendbriefOpportunityRepository", () => ({

@@ -43,9 +43,9 @@ describe("detectGscStrikingDistanceCandidates", () => {
       now: NOW,
     });
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]!.subjectUrl).toBe("/tree-removal-cheltenham");
-    expect(candidates[0]!.subjectQuery).toBe("tree removal cheltenham");
-    expect(candidates[0]!.rationaleCodes).toContain("striking_distance");
+    expect(candidates[0].subjectUrl).toBe("/tree-removal-cheltenham");
+    expect(candidates[0].subjectQuery).toBe("tree removal cheltenham");
+    expect(candidates[0].rationaleCodes).toContain("striking_distance");
   });
 
   it("does not produce a candidate when position is outside the configured range", () => {
@@ -71,12 +71,12 @@ describe("detectGscStrikingDistanceCandidates", () => {
       evidence: [evidenceRow({ observationEnd: "2026-08-28" })],
       keyPages: [],
       now: NOW,
-    })[0]!;
+    })[0];
     const stale = detectGscStrikingDistanceCandidates({
       evidence: [evidenceRow({ observationEnd: "2026-06-01" })],
       keyPages: [],
       now: NOW,
-    })[0]!;
+    })[0];
     expect(stale.scores.confidence).toBeLessThan(fresh.scores.confidence);
   });
 
@@ -85,7 +85,7 @@ describe("detectGscStrikingDistanceCandidates", () => {
       evidence: [evidenceRow()],
       keyPages: [],
       now: NOW,
-    })[0]!;
+    })[0];
     const withKeyPage = detectGscStrikingDistanceCandidates({
       evidence: [evidenceRow()],
       keyPages: [
@@ -96,7 +96,7 @@ describe("detectGscStrikingDistanceCandidates", () => {
         },
       ],
       now: NOW,
-    })[0]!;
+    })[0];
     expect(withoutKeyPage.relevanceStatus).toBe("unconfirmed");
     expect(withKeyPage.relevanceStatus).toBe("confirmed");
     expect(withKeyPage.scores.priority).toBeGreaterThan(

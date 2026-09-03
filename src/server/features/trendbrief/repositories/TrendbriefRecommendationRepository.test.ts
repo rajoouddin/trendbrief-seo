@@ -1,10 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrendbriefRecommendationRepository } from "./TrendbriefRecommendationRepository";
 
+type InsertedRecommendationValues = {
+  version: number;
+  generationMethod: string;
+  proposedAction: string;
+};
+
+type UpdatedRecommendationSet = {
+  version: number;
+};
+
 const mocks = vi.hoisted(() => ({
   select: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
+  insertedValues: undefined as InsertedRecommendationValues | undefined,
+  updateSetArgs: undefined as UpdatedRecommendationSet | undefined,
 }));
 vi.mock("cloudflare:workers", () => ({ env: {} }));
 vi.mock("@/db", () => ({
@@ -40,6 +52,8 @@ describe("TrendbriefRecommendationRepository.upsertForOpportunity", () => {
     mocks.select.mockReset();
     mocks.insert.mockReset();
     mocks.update.mockReset();
+    mocks.insertedValues = undefined;
+    mocks.updateSetArgs = undefined;
   });
 
   it("inserts version 1 with generationMethod 'deterministic' when none exists", async () => {
@@ -48,12 +62,17 @@ describe("TrendbriefRecommendationRepository.upsertForOpportunity", () => {
       values: vi.fn(),
       returning: vi.fn().mockResolvedValue([{ id: "rec_1", version: 1 }]),
     };
-    insertBuilder.values.mockReturnValue(insertBuilder);
+    insertBuilder.values.mockImplementation(
+      (values: InsertedRecommendationValues) => {
+        mocks.insertedValues = values;
+        return insertBuilder;
+      },
+    );
     mocks.insert.mockReturnValue(insertBuilder);
 
     await TrendbriefRecommendationRepository.upsertForOpportunity(upsertInput);
 
-    const insertedValues = insertBuilder.values.mock.calls[0][0];
+    const insertedValues = mocks.insertedValues!;
     expect(insertedValues.version).toBe(1);
     expect(insertedValues.generationMethod).toBe("deterministic");
     expect(JSON.parse(insertedValues.proposedAction)).toEqual(
@@ -70,7 +89,10 @@ describe("TrendbriefRecommendationRepository.upsertForOpportunity", () => {
       where: vi.fn(),
       returning: vi.fn().mockResolvedValue([{ id: "rec_1", version: 2 }]),
     };
-    updateBuilder.set.mockReturnValue(updateBuilder);
+    updateBuilder.set.mockImplementation((values: UpdatedRecommendationSet) => {
+      mocks.updateSetArgs = values;
+      return updateBuilder;
+    });
     updateBuilder.where.mockReturnValue(updateBuilder);
     mocks.update.mockReturnValue(updateBuilder);
 
@@ -80,6 +102,6 @@ describe("TrendbriefRecommendationRepository.upsertForOpportunity", () => {
       );
 
     expect(result.version).toBe(2);
-    expect(updateBuilder.set.mock.calls[0][0].version).toBe(2);
+    expect(mocks.updateSetArgs!.version).toBe(2);
   });
 });

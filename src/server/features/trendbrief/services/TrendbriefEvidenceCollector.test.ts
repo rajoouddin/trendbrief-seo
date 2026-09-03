@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrendbriefEvidenceCollector } from "./TrendbriefEvidenceCollector";
+import type {
+  TrendbriefEvidence,
+  TrendbriefEvidenceRepository,
+} from "../repositories/TrendbriefEvidenceRepository";
+
+type UpsertInput = Parameters<typeof TrendbriefEvidenceRepository.upsert>[0];
+// The mocked upsert below never sets capturedAt/createdAt (they're not read
+// by any assertion in this file), so its resolved type omits them rather
+// than claiming a full TrendbriefEvidence it doesn't actually produce.
+type UpsertResult = Omit<TrendbriefEvidence, "capturedAt" | "createdAt">;
 
 const mocks = vi.hoisted(() => ({
   getPerformance: vi.fn(),
-  upsert: vi.fn(),
+  upsert: vi.fn<(input: UpsertInput) => Promise<UpsertResult>>(),
 }));
 
 vi.mock("@/server/features/gsc/services/GscService", () => ({
