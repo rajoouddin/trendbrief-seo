@@ -4,7 +4,7 @@ import type { TrendbriefEvidence } from "../repositories/TrendbriefEvidenceRepos
 
 const NOW = new Date("2026-09-01T00:00:00.000Z");
 
-function evidenceRow(overrides: Partial<TrendbriefEvidence> & { metrics?: object } = {}): TrendbriefEvidence {
+function evidenceRow(overrides: Partial<Omit<TrendbriefEvidence, "metrics">> & { metrics?: object } = {}): TrendbriefEvidence {
   const { metrics: metricsOverride, ...restOverrides } = overrides;
   return {
     id: "evidence_1",
