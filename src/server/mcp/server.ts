@@ -69,6 +69,12 @@ import {
   runSiteAuditTool,
 } from "@/server/mcp/tools/site-audit-tools";
 import { whoamiTool } from "@/server/mcp/tools/whoami";
+import {
+  analyzeTrendbriefOpportunitiesTool,
+  listTrendbriefOpportunitiesTool,
+  setTrendbriefOpportunityStatusTool,
+  recordTrendbriefOutcomeTool,
+} from "@/server/mcp/tools/trendbrief-tools";
 
 type ToolSchema = z.ZodType | z.ZodRawShape;
 
@@ -203,6 +209,10 @@ export function createOpenSeoMcpServer(authProps: McpProps) {
   register(getAuditStatusTool);
   register(getAuditIssuesTool);
   register(getAuditPagesTool);
+  register(analyzeTrendbriefOpportunitiesTool);
+  register(listTrendbriefOpportunitiesTool);
+  register(setTrendbriefOpportunityStatusTool);
+  register(recordTrendbriefOutcomeTool);
 
   return server;
 }
