@@ -1,4 +1,7 @@
-import type { TrendbriefRelevanceStatus, GscEvidenceMetrics } from "../domain/types";
+import type {
+  TrendbriefRelevanceStatus,
+  GscEvidenceMetrics,
+} from "../domain/types";
 import type { TrendbriefEvidence } from "../repositories/TrendbriefEvidenceRepository";
 import { computeConfidenceScore } from "../scoring/confidence";
 import {
@@ -8,8 +11,15 @@ import {
   STRIKING_DISTANCE_MAX_POSITION,
   STRIKING_DISTANCE_MIN_POSITION,
 } from "../scoring/constants";
-import { matchCommercialRelevance, type KeyPageForRelevance } from "../scoring/relevance";
-import { computeDemandScore, computePriorityScore, computeReachabilityScore } from "../scoring/score";
+import {
+  matchCommercialRelevance,
+  type KeyPageForRelevance,
+} from "../scoring/relevance";
+import {
+  computeDemandScore,
+  computePriorityScore,
+  computeReachabilityScore,
+} from "../scoring/score";
 
 export type StrikingDistanceCandidate = {
   subjectUrl: string;
@@ -65,10 +75,18 @@ export function detectGscStrikingDistanceCandidates(input: {
       now,
     );
     const effort = EFFORT_IMPROVE_EXISTING_PAGE;
-    const priority = computePriorityScore({ demand, reachability, businessRelevance, confidence, effort });
+    const priority = computePriorityScore({
+      demand,
+      reachability,
+      businessRelevance,
+      confidence,
+      effort,
+    });
 
     const rationaleCodes = ["striking_distance", "meaningful_impressions"];
-    rationaleCodes.push(metrics.ctr < LOW_CTR_THRESHOLD ? "low_or_moderate_ctr" : "healthy_ctr");
+    rationaleCodes.push(
+      metrics.ctr < LOW_CTR_THRESHOLD ? "low_or_moderate_ctr" : "healthy_ctr",
+    );
     rationaleCodes.push(
       relevance.status === "confirmed"
         ? `commercial_relevance_confirmed_${relevance.matchedRole ?? "key_page"}`
@@ -84,7 +102,14 @@ export function detectGscStrikingDistanceCandidates(input: {
       observationEnd: row.observationEnd,
       relevanceStatus: relevance.status,
       matchedKeyPageRole: relevance.matchedRole,
-      scores: { demand, reachability, businessRelevance, confidence, effort, priority },
+      scores: {
+        demand,
+        reachability,
+        businessRelevance,
+        confidence,
+        effort,
+        priority,
+      },
       rationaleCodes,
     });
   }

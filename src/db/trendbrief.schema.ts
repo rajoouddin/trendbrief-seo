@@ -1,4 +1,11 @@
-import { sqliteTable, text, real, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  real,
+  integer,
+  uniqueIndex,
+  index,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { organization } from "./better-auth-schema";
 import { projects } from "./app.schema";
@@ -107,9 +114,7 @@ export const trendbriefOpportunities = sqliteTable(
       table.projectId,
       table.status,
     ),
-    index("trendbrief_opportunities_organization_idx").on(
-      table.organizationId,
-    ),
+    index("trendbrief_opportunities_organization_idx").on(table.organizationId),
   ],
 );
 
@@ -133,9 +138,7 @@ export const trendbriefOpportunityEvidence = sqliteTable(
       table.opportunityId,
       table.evidenceId,
     ),
-    index("trendbrief_opportunity_evidence_evidence_idx").on(
-      table.evidenceId,
-    ),
+    index("trendbrief_opportunity_evidence_evidence_idx").on(table.evidenceId),
   ],
 );
 

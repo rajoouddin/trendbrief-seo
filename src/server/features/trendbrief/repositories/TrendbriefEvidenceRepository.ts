@@ -56,7 +56,10 @@ async function upsert(input: {
 
 async function listByIds(ids: string[]): Promise<TrendbriefEvidence[]> {
   if (ids.length === 0) return [];
-  return db.select().from(trendbriefEvidence).where(inArray(trendbriefEvidence.id, ids));
+  return db
+    .select()
+    .from(trendbriefEvidence)
+    .where(inArray(trendbriefEvidence.id, ids));
 }
 
 export const TrendbriefEvidenceRepository = { upsert, listByIds };

@@ -28,18 +28,41 @@ describe("TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence", () =>
     mocks.getPerformance.mockResolvedValue({
       siteUrl: "sc-domain:example.com",
       connectedBy: "user@example.com",
-      request: { startDate: "2026-08-01", endDate: "2026-08-28", dimensions: ["page", "query"] },
+      request: {
+        startDate: "2026-08-01",
+        endDate: "2026-08-28",
+        dimensions: ["page", "query"],
+      },
       rows: [
-        { keys: ["/page-a", "query a"], clicks: 5, impressions: 300, ctr: 0.017, position: 8 },
-        { keys: ["/page-b", "query b"], clicks: 50, impressions: 900, ctr: 0.055, position: 2 },
-        { keys: ["/page-c", "query c"], clicks: 1, impressions: 40, ctr: 0.025, position: 25 },
+        {
+          keys: ["/page-a", "query a"],
+          clicks: 5,
+          impressions: 300,
+          ctr: 0.017,
+          position: 8,
+        },
+        {
+          keys: ["/page-b", "query b"],
+          clicks: 50,
+          impressions: 900,
+          ctr: 0.055,
+          position: 2,
+        },
+        {
+          keys: ["/page-c", "query c"],
+          clicks: 1,
+          impressions: 40,
+          ctr: 0.025,
+          position: 25,
+        },
       ],
     });
 
-    const result = await TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence({
-      organizationId: "org_1",
-      projectId: "project_1",
-    });
+    const result =
+      await TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence({
+        organizationId: "org_1",
+        projectId: "project_1",
+      });
 
     expect(result.rowsConsidered).toBe(3);
     expect(result.rowsInStrikingDistance).toBe(1);
@@ -58,14 +81,27 @@ describe("TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence", () =>
     mocks.getPerformance.mockResolvedValue({
       siteUrl: "sc-domain:example.com",
       connectedBy: null,
-      request: { startDate: "2026-08-01", endDate: "2026-08-28", dimensions: ["page", "query"] },
-      rows: [{ keys: ["/page-only"], clicks: 1, impressions: 100, ctr: 0.01, position: 10 }],
+      request: {
+        startDate: "2026-08-01",
+        endDate: "2026-08-28",
+        dimensions: ["page", "query"],
+      },
+      rows: [
+        {
+          keys: ["/page-only"],
+          clicks: 1,
+          impressions: 100,
+          ctr: 0.01,
+          position: 10,
+        },
+      ],
     });
 
-    const result = await TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence({
-      organizationId: "org_1",
-      projectId: "project_1",
-    });
+    const result =
+      await TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence({
+        organizationId: "org_1",
+        projectId: "project_1",
+      });
 
     expect(result.evidence).toHaveLength(0);
     expect(mocks.upsert).not.toHaveBeenCalled();
@@ -75,7 +111,11 @@ describe("TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence", () =>
     mocks.getPerformance.mockResolvedValue({
       siteUrl: "sc-domain:example.com",
       connectedBy: null,
-      request: { startDate: "2026-08-01", endDate: "2026-08-28", dimensions: ["page", "query"] },
+      request: {
+        startDate: "2026-08-01",
+        endDate: "2026-08-28",
+        dimensions: ["page", "query"],
+      },
       rows: [],
     });
 

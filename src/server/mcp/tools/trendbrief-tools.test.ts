@@ -23,24 +23,40 @@ const mocks = vi.hoisted(() => ({
 vi.mock("cloudflare:workers", () => ({ env: {} }));
 
 vi.mock("@/server/features/projects/services/ProjectService", () => ({
-  ProjectService: { getProjectForOrganization: mocks.getProjectForOrganization },
-}));
-vi.mock("@/server/features/trendbrief/services/TrendbriefAnalysisService", () => ({
-  TrendbriefAnalysisService: { analyzeProject: mocks.analyzeProject },
-}));
-vi.mock("@/server/features/trendbrief/repositories/TrendbriefOpportunityRepository", () => ({
-  TrendbriefOpportunityRepository: { listForProject: mocks.listForProject },
-}));
-vi.mock("@/server/features/trendbrief/repositories/TrendbriefRecommendationRepository", () => ({
-  TrendbriefRecommendationRepository: { getByOpportunityId: mocks.getByOpportunityId },
-}));
-vi.mock("@/server/features/trendbrief/services/TrendbriefOpportunityLifecycleService", () => ({
-  TrendbriefOpportunityLifecycleService: {
-    acceptOpportunity: mocks.acceptOpportunity,
-    rejectOpportunity: vi.fn(),
-    completeOpportunity: vi.fn(),
+  ProjectService: {
+    getProjectForOrganization: mocks.getProjectForOrganization,
   },
 }));
+vi.mock(
+  "@/server/features/trendbrief/services/TrendbriefAnalysisService",
+  () => ({
+    TrendbriefAnalysisService: { analyzeProject: mocks.analyzeProject },
+  }),
+);
+vi.mock(
+  "@/server/features/trendbrief/repositories/TrendbriefOpportunityRepository",
+  () => ({
+    TrendbriefOpportunityRepository: { listForProject: mocks.listForProject },
+  }),
+);
+vi.mock(
+  "@/server/features/trendbrief/repositories/TrendbriefRecommendationRepository",
+  () => ({
+    TrendbriefRecommendationRepository: {
+      getByOpportunityId: mocks.getByOpportunityId,
+    },
+  }),
+);
+vi.mock(
+  "@/server/features/trendbrief/services/TrendbriefOpportunityLifecycleService",
+  () => ({
+    TrendbriefOpportunityLifecycleService: {
+      acceptOpportunity: mocks.acceptOpportunity,
+      rejectOpportunity: vi.fn(),
+      completeOpportunity: vi.fn(),
+    },
+  }),
+);
 
 const toolContext = makeToolContext();
 
@@ -57,7 +73,10 @@ describe("TrendBrief MCP tools — tenant authorization", () => {
     mocks.getProjectForOrganization.mockResolvedValue(null);
 
     await expect(
-      analyzeTrendbriefOpportunitiesTool.handler({ projectId: "project_other_org" }, toolContext),
+      analyzeTrendbriefOpportunitiesTool.handler(
+        { projectId: "project_other_org" },
+        toolContext,
+      ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(mocks.analyzeProject).not.toHaveBeenCalled();
   });
@@ -66,7 +85,10 @@ describe("TrendBrief MCP tools — tenant authorization", () => {
     mocks.getProjectForOrganization.mockResolvedValue(null);
 
     await expect(
-      listTrendbriefOpportunitiesTool.handler({ projectId: "project_other_org" }, toolContext),
+      listTrendbriefOpportunitiesTool.handler(
+        { projectId: "project_other_org" },
+        toolContext,
+      ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(mocks.listForProject).not.toHaveBeenCalled();
   });
@@ -76,7 +98,11 @@ describe("TrendBrief MCP tools — tenant authorization", () => {
 
     await expect(
       setTrendbriefOpportunityStatusTool.handler(
-        { projectId: "project_other_org", opportunityId: "opp_guessed", action: "accept" },
+        {
+          projectId: "project_other_org",
+          opportunityId: "opp_guessed",
+          action: "accept",
+        },
         toolContext,
       ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -84,7 +110,10 @@ describe("TrendBrief MCP tools — tenant authorization", () => {
   });
 
   it("proceeds when the project belongs to the caller's organization", async () => {
-    mocks.getProjectForOrganization.mockResolvedValue({ id: "project_1", organizationId: "org_123" });
+    mocks.getProjectForOrganization.mockResolvedValue({
+      id: "project_1",
+      organizationId: "org_123",
+    });
     mocks.analyzeProject.mockResolvedValue({
       evidenceIngested: 2,
       opportunitiesDetected: 1,
@@ -92,10 +121,16 @@ describe("TrendBrief MCP tools — tenant authorization", () => {
       opportunitiesUpdated: 0,
     });
 
-    const result = await analyzeTrendbriefOpportunitiesTool.handler({ projectId: "project_1" }, toolContext);
+    const result = await analyzeTrendbriefOpportunitiesTool.handler(
+      { projectId: "project_1" },
+      toolContext,
+    );
 
     expect(mocks.analyzeProject).toHaveBeenCalledWith(
-      expect.objectContaining({ organizationId: "org_123", projectId: "project_1" }),
+      expect.objectContaining({
+        organizationId: "org_123",
+        projectId: "project_1",
+      }),
     );
     expect(result.structuredContent?.opportunitiesCreated).toBe(1);
   });
@@ -103,15 +138,28 @@ describe("TrendBrief MCP tools — tenant authorization", () => {
 
 describe("list_trendbrief_opportunities", () => {
   beforeEach(() => {
-    mocks.getProjectForOrganization.mockResolvedValue({ id: "project_1", organizationId: "org_123" });
+    mocks.getProjectForOrganization.mockResolvedValue({
+      id: "project_1",
+      organizationId: "org_123",
+    });
     mocks.listForProject.mockReset();
     mocks.getByOpportunityId.mockReset();
   });
 
   it("filters by status when provided", async () => {
     mocks.listForProject.mockResolvedValue([
-      { id: "opp_1", status: "detected", rationaleCodes: "[]", priorityScore: 50 },
-      { id: "opp_2", status: "accepted", rationaleCodes: "[]", priorityScore: 40 },
+      {
+        id: "opp_1",
+        status: "detected",
+        rationaleCodes: "[]",
+        priorityScore: 50,
+      },
+      {
+        id: "opp_2",
+        status: "accepted",
+        rationaleCodes: "[]",
+        priorityScore: 40,
+      },
     ]);
     mocks.getByOpportunityId.mockResolvedValue(null);
 
@@ -121,6 +169,8 @@ describe("list_trendbrief_opportunities", () => {
     );
 
     expect(result.structuredContent?.rows).toHaveLength(1);
-    expect((result.structuredContent?.rows as Array<{ id: string }>)[0]!.id).toBe("opp_2");
+    expect(
+      (result.structuredContent?.rows as Array<{ id: string }>)[0]!.id,
+    ).toBe("opp_2");
   });
 });

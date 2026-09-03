@@ -1,7 +1,10 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { trendbriefOpportunities } from "@/db/schema";
-import type { TrendbriefOpportunityStatus, TrendbriefRelevanceStatus } from "../domain/types";
+import type {
+  TrendbriefOpportunityStatus,
+  TrendbriefRelevanceStatus,
+} from "../domain/types";
 
 export type TrendbriefOpportunity = typeof trendbriefOpportunities.$inferSelect;
 
@@ -23,7 +26,9 @@ export type DetectionUpsertInput = {
   dedupeKey: string;
 };
 
-async function getByDedupeKey(dedupeKey: string): Promise<TrendbriefOpportunity | null> {
+async function getByDedupeKey(
+  dedupeKey: string,
+): Promise<TrendbriefOpportunity | null> {
   const rows = await db
     .select()
     .from(trendbriefOpportunities)
@@ -106,7 +111,9 @@ async function getForProject(
   return rows[0] ?? null;
 }
 
-async function listForProject(projectId: string): Promise<TrendbriefOpportunity[]> {
+async function listForProject(
+  projectId: string,
+): Promise<TrendbriefOpportunity[]> {
   return db
     .select()
     .from(trendbriefOpportunities)

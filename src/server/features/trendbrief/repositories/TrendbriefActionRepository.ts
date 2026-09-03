@@ -5,13 +5,17 @@ import type { TrendbriefActionType } from "../domain/types";
 
 export type TrendbriefAction = typeof trendbriefActions.$inferSelect;
 
-function statusForActionType(actionType: TrendbriefActionType): "accepted" | "rejected" | "completed" {
+function statusForActionType(
+  actionType: TrendbriefActionType,
+): "accepted" | "rejected" | "completed" {
   if (actionType === "reject") return "rejected";
   if (actionType === "complete") return "completed";
   return "accepted";
 }
 
-async function getByOpportunityId(opportunityId: string): Promise<TrendbriefAction | null> {
+async function getByOpportunityId(
+  opportunityId: string,
+): Promise<TrendbriefAction | null> {
   const rows = await db
     .select()
     .from(trendbriefActions)

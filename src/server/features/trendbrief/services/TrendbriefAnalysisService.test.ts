@@ -10,19 +10,29 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./TrendbriefEvidenceCollector", () => ({
-  TrendbriefEvidenceCollector: { collectGscStrikingDistanceEvidence: mocks.collectGscStrikingDistanceEvidence },
+  TrendbriefEvidenceCollector: {
+    collectGscStrikingDistanceEvidence:
+      mocks.collectGscStrikingDistanceEvidence,
+  },
 }));
-vi.mock("@/server/features/project-context/repositories/ProjectContextRepository", () => ({
-  ProjectContextRepository: { listKeyPages: mocks.listKeyPages },
-}));
+vi.mock(
+  "@/server/features/project-context/repositories/ProjectContextRepository",
+  () => ({
+    ProjectContextRepository: { listKeyPages: mocks.listKeyPages },
+  }),
+);
 vi.mock("../repositories/TrendbriefOpportunityRepository", () => ({
-  TrendbriefOpportunityRepository: { upsertFromDetection: mocks.upsertFromDetection },
+  TrendbriefOpportunityRepository: {
+    upsertFromDetection: mocks.upsertFromDetection,
+  },
 }));
 vi.mock("../repositories/TrendbriefOpportunityEvidenceRepository", () => ({
   TrendbriefOpportunityEvidenceRepository: { linkEvidence: mocks.linkEvidence },
 }));
 vi.mock("../repositories/TrendbriefRecommendationRepository", () => ({
-  TrendbriefRecommendationRepository: { upsertForOpportunity: mocks.upsertForOpportunity },
+  TrendbriefRecommendationRepository: {
+    upsertForOpportunity: mocks.upsertForOpportunity,
+  },
 }));
 
 const qualifyingEvidenceRow = {
@@ -36,7 +46,12 @@ const qualifyingEvidenceRow = {
   observationStart: "2026-08-01",
   observationEnd: "2026-08-28",
   dataState: "final",
-  metrics: JSON.stringify({ clicks: 20, impressions: 400, ctr: 0.05, position: 8 }),
+  metrics: JSON.stringify({
+    clicks: 20,
+    impressions: 400,
+    ctr: 0.05,
+    position: 8,
+  }),
   dedupeKey: "evidence_dedupe_1",
   capturedAt: "2026-08-28T00:00:00.000Z",
   createdAt: "2026-08-28T00:00:00.000Z",

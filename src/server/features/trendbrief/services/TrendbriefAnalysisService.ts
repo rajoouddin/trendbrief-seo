@@ -30,7 +30,9 @@ export type AnalyzeProjectResult = {
   opportunitiesUpdated: number;
 };
 
-async function analyzeProject(input: AnalyzeProjectInput): Promise<AnalyzeProjectResult> {
+async function analyzeProject(
+  input: AnalyzeProjectInput,
+): Promise<AnalyzeProjectResult> {
   const [collected, keyPages] = await Promise.all([
     TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence(input),
     ProjectContextRepository.listKeyPages(input.projectId),
@@ -56,23 +58,24 @@ async function analyzeProject(input: AnalyzeProjectInput): Promise<AnalyzeProjec
       subjectQuery: candidate.subjectQuery,
     });
 
-    const { opportunity, wasNew } = await TrendbriefOpportunityRepository.upsertFromDetection({
-      organizationId: input.organizationId,
-      projectId: input.projectId,
-      detectorId: GSC_STRIKING_DISTANCE_DETECTOR_ID,
-      detectorVersion: GSC_STRIKING_DISTANCE_DETECTOR_VERSION,
-      type: "improve_existing_page",
-      subjectUrl: candidate.subjectUrl,
-      subjectQuery: candidate.subjectQuery,
-      impactScore: candidate.scores.demand,
-      effortScore: candidate.scores.effort,
-      confidenceScore: candidate.scores.confidence,
-      priorityScore: candidate.scores.priority,
-      rationaleCodes: candidate.rationaleCodes,
-      relevanceStatus: candidate.relevanceStatus,
-      expiresAt,
-      dedupeKey,
-    });
+    const { opportunity, wasNew } =
+      await TrendbriefOpportunityRepository.upsertFromDetection({
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        detectorId: GSC_STRIKING_DISTANCE_DETECTOR_ID,
+        detectorVersion: GSC_STRIKING_DISTANCE_DETECTOR_VERSION,
+        type: "improve_existing_page",
+        subjectUrl: candidate.subjectUrl,
+        subjectQuery: candidate.subjectQuery,
+        impactScore: candidate.scores.demand,
+        effortScore: candidate.scores.effort,
+        confidenceScore: candidate.scores.confidence,
+        priorityScore: candidate.scores.priority,
+        rationaleCodes: candidate.rationaleCodes,
+        relevanceStatus: candidate.relevanceStatus,
+        expiresAt,
+        dedupeKey,
+      });
 
     await TrendbriefOpportunityEvidenceRepository.linkEvidence(
       opportunity.id,

@@ -4,7 +4,11 @@ import type { TrendbriefEvidence } from "../repositories/TrendbriefEvidenceRepos
 
 const NOW = new Date("2026-09-01T00:00:00.000Z");
 
-function evidenceRow(overrides: Partial<Omit<TrendbriefEvidence, "metrics">> & { metrics?: object } = {}): TrendbriefEvidence {
+function evidenceRow(
+  overrides: Partial<Omit<TrendbriefEvidence, "metrics">> & {
+    metrics?: object;
+  } = {},
+): TrendbriefEvidence {
   const { metrics: metricsOverride, ...restOverrides } = overrides;
   return {
     id: "evidence_1",
@@ -17,7 +21,13 @@ function evidenceRow(overrides: Partial<Omit<TrendbriefEvidence, "metrics">> & {
     observationStart: "2026-08-01",
     observationEnd: "2026-08-28",
     dataState: "final",
-    metrics: JSON.stringify({ clicks: 20, impressions: 400, ctr: 0.05, position: 8, ...metricsOverride }),
+    metrics: JSON.stringify({
+      clicks: 20,
+      impressions: 400,
+      ctr: 0.05,
+      position: 8,
+      ...metricsOverride,
+    }),
     dedupeKey: "dedupe_1",
     capturedAt: "2026-08-28T00:00:00.000Z",
     createdAt: "2026-08-28T00:00:00.000Z",
@@ -78,12 +88,20 @@ describe("detectGscStrikingDistanceCandidates", () => {
     })[0]!;
     const withKeyPage = detectGscStrikingDistanceCandidates({
       evidence: [evidenceRow()],
-      keyPages: [{ url: "/tree-removal-cheltenham", role: "money", topic: "tree removal" }],
+      keyPages: [
+        {
+          url: "/tree-removal-cheltenham",
+          role: "money",
+          topic: "tree removal",
+        },
+      ],
       now: NOW,
     })[0]!;
     expect(withoutKeyPage.relevanceStatus).toBe("unconfirmed");
     expect(withKeyPage.relevanceStatus).toBe("confirmed");
-    expect(withKeyPage.scores.priority).toBeGreaterThan(withoutKeyPage.scores.priority);
+    expect(withKeyPage.scores.priority).toBeGreaterThan(
+      withoutKeyPage.scores.priority,
+    );
   });
 
   it("skips evidence with no subjectQuery", () => {

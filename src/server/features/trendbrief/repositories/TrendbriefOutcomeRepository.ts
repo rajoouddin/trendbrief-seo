@@ -45,7 +45,10 @@ async function record(input: {
       createdAt: new Date().toISOString(),
     })
     .onConflictDoUpdate({
-      target: [trendbriefOutcomes.opportunityId, trendbriefOutcomes.comparisonWindowEnd],
+      target: [
+        trendbriefOutcomes.opportunityId,
+        trendbriefOutcomes.comparisonWindowEnd,
+      ],
       set: {
         measuredMetrics: JSON.stringify(input.measuredMetrics),
         classification: input.classification,

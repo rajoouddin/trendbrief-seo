@@ -15,7 +15,9 @@ describe("TrendbriefEvidenceRepository.upsert", () => {
     const builder = {
       values: vi.fn(),
       onConflictDoUpdate: vi.fn(),
-      returning: vi.fn().mockResolvedValue([{ id: "evidence_1", dedupeKey: "key_1" }]),
+      returning: vi
+        .fn()
+        .mockResolvedValue([{ id: "evidence_1", dedupeKey: "key_1" }]),
     };
     builder.values.mockReturnValue(builder);
     builder.onConflictDoUpdate.mockReturnValue(builder);
@@ -38,7 +40,8 @@ describe("TrendbriefEvidenceRepository.upsert", () => {
     });
 
     expect(row.id).toBe("evidence_1");
-    const insertedValues = mocks.insert.mock.results[0]!.value.values.mock.calls[0][0];
+    const insertedValues =
+      mocks.insert.mock.results[0]!.value.values.mock.calls[0][0];
     expect(insertedValues.organizationId).toBe("org_1");
     expect(insertedValues.projectId).toBe("project_1");
     expect(insertedValues.dedupeKey).toBe("key_1");
@@ -48,7 +51,8 @@ describe("TrendbriefEvidenceRepository.upsert", () => {
       ctr: 0.05,
       position: 8,
     });
-    const conflictArgs = mocks.insert.mock.results[0]!.value.onConflictDoUpdate.mock.calls[0][0];
+    const conflictArgs =
+      mocks.insert.mock.results[0]!.value.onConflictDoUpdate.mock.calls[0][0];
     expect(conflictArgs.target).toBeDefined();
   });
 });

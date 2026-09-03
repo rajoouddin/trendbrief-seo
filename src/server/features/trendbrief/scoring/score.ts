@@ -33,9 +33,7 @@ export function computeReachabilityScore(position: number): number {
     Math.max(position, STRIKING_DISTANCE_MIN_POSITION),
     STRIKING_DISTANCE_MAX_POSITION,
   );
-  return roundComponent(
-    (STRIKING_DISTANCE_MAX_POSITION - clamped) / span,
-  );
+  return roundComponent((STRIKING_DISTANCE_MAX_POSITION - clamped) / span);
 }
 
 // priority = demand x reachability x business_relevance x confidence,

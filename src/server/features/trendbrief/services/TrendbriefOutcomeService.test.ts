@@ -51,8 +51,12 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
 
   it("classifies as improved when position gets closer to page 1", async () => {
     mocks.getPerformance
-      .mockResolvedValueOnce({ rows: [{ clicks: 10, impressions: 300, ctr: 0.033, position: 10 }] })
-      .mockResolvedValueOnce({ rows: [{ clicks: 25, impressions: 320, ctr: 0.078, position: 6 }] });
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 10, impressions: 300, ctr: 0.033, position: 10 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 25, impressions: 320, ctr: 0.078, position: 6 }],
+      });
 
     const outcome = await TrendbriefOutcomeService.recordOutcome(baseInput);
 
@@ -61,8 +65,12 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
 
   it("classifies as declined when position moves further from page 1", async () => {
     mocks.getPerformance
-      .mockResolvedValueOnce({ rows: [{ clicks: 20, impressions: 300, ctr: 0.067, position: 6 }] })
-      .mockResolvedValueOnce({ rows: [{ clicks: 8, impressions: 280, ctr: 0.029, position: 12 }] });
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 20, impressions: 300, ctr: 0.067, position: 6 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 8, impressions: 280, ctr: 0.029, position: 12 }],
+      });
 
     const outcome = await TrendbriefOutcomeService.recordOutcome(baseInput);
 
@@ -72,7 +80,9 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
   it("classifies as inconclusive when either window has no data", async () => {
     mocks.getPerformance
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [{ clicks: 10, impressions: 300, ctr: 0.033, position: 8 }] });
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 10, impressions: 300, ctr: 0.033, position: 8 }],
+      });
 
     const outcome = await TrendbriefOutcomeService.recordOutcome(baseInput);
 
@@ -81,8 +91,12 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
 
   it("never asserts a causal claim in the attribution note", async () => {
     mocks.getPerformance
-      .mockResolvedValueOnce({ rows: [{ clicks: 10, impressions: 300, ctr: 0.033, position: 10 }] })
-      .mockResolvedValueOnce({ rows: [{ clicks: 25, impressions: 320, ctr: 0.078, position: 6 }] });
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 10, impressions: 300, ctr: 0.033, position: 10 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ clicks: 25, impressions: 320, ctr: 0.078, position: 6 }],
+      });
 
     const outcome = await TrendbriefOutcomeService.recordOutcome(baseInput);
 
@@ -93,7 +107,9 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
   it("throws NOT_FOUND for an opportunity outside the given project", async () => {
     mocks.getForProject.mockResolvedValue(null);
 
-    await expect(TrendbriefOutcomeService.recordOutcome(baseInput)).rejects.toMatchObject({
+    await expect(
+      TrendbriefOutcomeService.recordOutcome(baseInput),
+    ).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
   });

@@ -33,7 +33,11 @@ export const analyzeTrendbriefOpportunitiesTool = {
       "Ingest Search Console evidence for a project, run the deterministic GSC striking-distance detector, and persist/update scored opportunities with a grounded recommendation. No LLM call; no paid provider calls (Search Console is free). Re-running with the same evidence updates existing opportunities instead of duplicating them.",
     inputSchema: analyzeInputSchema,
     outputSchema: looseObjectOutputSchema,
-    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false },
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: false,
+      destructiveHint: false,
+    },
   },
   handler: withMcpProjectAuth(async (args: AnalyzeArgs, context) => {
     const result = await TrendbriefAnalysisService.analyzeProject({
@@ -69,17 +73,28 @@ export const listTrendbriefOpportunitiesTool = {
       "List a project's TrendBrief opportunities (priority-ordered), each with its deterministic recommendation and detection rationale. Read-only.",
     inputSchema: listInputSchema,
     outputSchema: looseObjectOutputSchema,
-    annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+      destructiveHint: false,
+    },
   },
   handler: withMcpProjectAuth(async (args: ListArgs, context) => {
-    const opportunities = await TrendbriefOpportunityRepository.listForProject(args.projectId);
+    const opportunities = await TrendbriefOpportunityRepository.listForProject(
+      args.projectId,
+    );
     const filtered = args.status
-      ? opportunities.filter((opportunity) => opportunity.status === args.status)
+      ? opportunities.filter(
+          (opportunity) => opportunity.status === args.status,
+        )
       : opportunities;
 
     const rows = await Promise.all(
       filtered.map(async (opportunity) => {
-        const recommendation = await TrendbriefRecommendationRepository.getByOpportunityId(opportunity.id);
+        const recommendation =
+          await TrendbriefRecommendationRepository.getByOpportunityId(
+            opportunity.id,
+          );
         return {
           id: opportunity.id,
           type: opportunity.type,
@@ -130,7 +145,11 @@ export const setTrendbriefOpportunityStatusTool = {
       "Record the operator's decision on a TrendBrief opportunity: accept (detected -> accepted), reject (detected -> rejected), or complete (accepted -> completed). Invalid transitions are rejected.",
     inputSchema: setStatusInputSchema,
     outputSchema: looseObjectOutputSchema,
-    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false },
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: false,
+      destructiveHint: false,
+    },
   },
   handler: withMcpProjectAuth(async (args: SetStatusArgs, context) => {
     const transitionInput = {
@@ -142,10 +161,16 @@ export const setTrendbriefOpportunityStatusTool = {
     };
     const opportunity =
       args.action === "accept"
-        ? await TrendbriefOpportunityLifecycleService.acceptOpportunity(transitionInput)
+        ? await TrendbriefOpportunityLifecycleService.acceptOpportunity(
+            transitionInput,
+          )
         : args.action === "reject"
-          ? await TrendbriefOpportunityLifecycleService.rejectOpportunity(transitionInput)
-          : await TrendbriefOpportunityLifecycleService.completeOpportunity(transitionInput);
+          ? await TrendbriefOpportunityLifecycleService.rejectOpportunity(
+              transitionInput,
+            )
+          : await TrendbriefOpportunityLifecycleService.completeOpportunity(
+              transitionInput,
+            );
 
     return mcpResponse({
       text: `Opportunity ${opportunity.id} is now "${opportunity.status}".`,
@@ -174,7 +199,11 @@ export const recordTrendbriefOutcomeTool = {
       "Compare a TrendBrief opportunity's baseline and comparison Search Console windows and record a correlational classification (improved/unchanged/declined/inconclusive). Never asserts causation.",
     inputSchema: recordOutcomeInputSchema,
     outputSchema: looseObjectOutputSchema,
-    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false },
+    annotations: {
+      readOnlyHint: false,
+      openWorldHint: false,
+      destructiveHint: false,
+    },
   },
   handler: withMcpProjectAuth(async (args: RecordOutcomeArgs, context) => {
     const outcome = await TrendbriefOutcomeService.recordOutcome({

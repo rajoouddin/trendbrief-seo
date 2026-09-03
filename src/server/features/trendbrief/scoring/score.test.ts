@@ -4,7 +4,10 @@ import {
   computeReachabilityScore,
   computePriorityScore,
 } from "./score";
-import { STRIKING_DISTANCE_MIN_POSITION, STRIKING_DISTANCE_MAX_POSITION } from "./constants";
+import {
+  STRIKING_DISTANCE_MIN_POSITION,
+  STRIKING_DISTANCE_MAX_POSITION,
+} from "./constants";
 
 describe("computeDemandScore", () => {
   it("is 0 for zero impressions", () => {
@@ -42,33 +45,79 @@ describe("computeReachabilityScore", () => {
 
 describe("computePriorityScore", () => {
   it("is deterministic for identical inputs", () => {
-    const inputs = { demand: 0.8, reachability: 0.6, businessRelevance: 1, confidence: 0.9, effort: 0.2 };
+    const inputs = {
+      demand: 0.8,
+      reachability: 0.6,
+      businessRelevance: 1,
+      confidence: 0.9,
+      effort: 0.2,
+    };
     expect(computePriorityScore(inputs)).toBe(computePriorityScore(inputs));
   });
 
   it("higher demand never produces a lower priority, all else equal", () => {
-    const base = { demand: 0.3, reachability: 0.5, businessRelevance: 1, confidence: 0.8, effort: 0.2 };
+    const base = {
+      demand: 0.3,
+      reachability: 0.5,
+      businessRelevance: 1,
+      confidence: 0.8,
+      effort: 0.2,
+    };
     const higherDemand = { ...base, demand: 0.9 };
-    expect(computePriorityScore(higherDemand)).toBeGreaterThanOrEqual(computePriorityScore(base));
+    expect(computePriorityScore(higherDemand)).toBeGreaterThanOrEqual(
+      computePriorityScore(base),
+    );
   });
 
   it("higher confidence never produces a lower priority, all else equal", () => {
-    const base = { demand: 0.5, reachability: 0.5, businessRelevance: 1, confidence: 0.3, effort: 0.2 };
+    const base = {
+      demand: 0.5,
+      reachability: 0.5,
+      businessRelevance: 1,
+      confidence: 0.3,
+      effort: 0.2,
+    };
     const higherConfidence = { ...base, confidence: 0.9 };
-    expect(computePriorityScore(higherConfidence)).toBeGreaterThanOrEqual(computePriorityScore(base));
+    expect(computePriorityScore(higherConfidence)).toBeGreaterThanOrEqual(
+      computePriorityScore(base),
+    );
   });
 
   it("higher effort never produces a higher priority, all else equal", () => {
-    const base = { demand: 0.5, reachability: 0.5, businessRelevance: 1, confidence: 0.8, effort: 0.1 };
+    const base = {
+      demand: 0.5,
+      reachability: 0.5,
+      businessRelevance: 1,
+      confidence: 0.8,
+      effort: 0.1,
+    };
     const higherEffort = { ...base, effort: 0.6 };
-    expect(computePriorityScore(higherEffort)).toBeLessThanOrEqual(computePriorityScore(base));
+    expect(computePriorityScore(higherEffort)).toBeLessThanOrEqual(
+      computePriorityScore(base),
+    );
   });
 
   it("is 0 when any multiplicative component is 0", () => {
-    expect(computePriorityScore({ demand: 0, reachability: 0.9, businessRelevance: 1, confidence: 0.9, effort: 0.1 })).toBe(0);
+    expect(
+      computePriorityScore({
+        demand: 0,
+        reachability: 0.9,
+        businessRelevance: 1,
+        confidence: 0.9,
+        effort: 0.1,
+      }),
+    ).toBe(0);
   });
 
   it("is at most 100", () => {
-    expect(computePriorityScore({ demand: 1, reachability: 1, businessRelevance: 1, confidence: 1, effort: 0 })).toBe(100);
+    expect(
+      computePriorityScore({
+        demand: 1,
+        reachability: 1,
+        businessRelevance: 1,
+        confidence: 1,
+        effort: 0,
+      }),
+    ).toBe(100);
   });
 });

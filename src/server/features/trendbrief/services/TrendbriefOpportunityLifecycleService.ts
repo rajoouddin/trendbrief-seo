@@ -1,12 +1,18 @@
 import { AppError } from "@/server/lib/errors";
-import type { TrendbriefActionType, TrendbriefOpportunityStatus } from "../domain/types";
+import type {
+  TrendbriefActionType,
+  TrendbriefOpportunityStatus,
+} from "../domain/types";
 import { TrendbriefActionRepository } from "../repositories/TrendbriefActionRepository";
 import {
   TrendbriefOpportunityRepository,
   type TrendbriefOpportunity,
 } from "../repositories/TrendbriefOpportunityRepository";
 
-const VALID_TRANSITIONS: Record<TrendbriefOpportunityStatus, TrendbriefOpportunityStatus[]> = {
+const VALID_TRANSITIONS: Record<
+  TrendbriefOpportunityStatus,
+  TrendbriefOpportunityStatus[]
+> = {
   detected: ["accepted", "rejected"],
   accepted: ["completed"],
   rejected: [],
@@ -40,7 +46,10 @@ export type TransitionInput = {
 };
 
 async function transitionOpportunity(
-  input: TransitionInput & { actionType: TrendbriefActionType; nextStatus: TrendbriefOpportunityStatus },
+  input: TransitionInput & {
+    actionType: TrendbriefActionType;
+    nextStatus: TrendbriefOpportunityStatus;
+  },
 ): Promise<TrendbriefOpportunity> {
   const opportunity = await TrendbriefOpportunityRepository.getForProject(
     input.projectId,
@@ -69,16 +78,34 @@ async function transitionOpportunity(
   return updated;
 }
 
-async function acceptOpportunity(input: TransitionInput): Promise<TrendbriefOpportunity> {
-  return transitionOpportunity({ ...input, actionType: "accept", nextStatus: "accepted" });
+async function acceptOpportunity(
+  input: TransitionInput,
+): Promise<TrendbriefOpportunity> {
+  return transitionOpportunity({
+    ...input,
+    actionType: "accept",
+    nextStatus: "accepted",
+  });
 }
 
-async function rejectOpportunity(input: TransitionInput): Promise<TrendbriefOpportunity> {
-  return transitionOpportunity({ ...input, actionType: "reject", nextStatus: "rejected" });
+async function rejectOpportunity(
+  input: TransitionInput,
+): Promise<TrendbriefOpportunity> {
+  return transitionOpportunity({
+    ...input,
+    actionType: "reject",
+    nextStatus: "rejected",
+  });
 }
 
-async function completeOpportunity(input: TransitionInput): Promise<TrendbriefOpportunity> {
-  return transitionOpportunity({ ...input, actionType: "complete", nextStatus: "completed" });
+async function completeOpportunity(
+  input: TransitionInput,
+): Promise<TrendbriefOpportunity> {
+  return transitionOpportunity({
+    ...input,
+    actionType: "complete",
+    nextStatus: "completed",
+  });
 }
 
 export const TrendbriefOpportunityLifecycleService = {

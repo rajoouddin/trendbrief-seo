@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { trendbriefRecommendations } from "@/db/schema";
 
-export type TrendbriefRecommendation = typeof trendbriefRecommendations.$inferSelect;
+export type TrendbriefRecommendation =
+  typeof trendbriefRecommendations.$inferSelect;
 
 export type ProposedAction = {
   page: string;
@@ -10,7 +11,9 @@ export type ProposedAction = {
   suggestedNextAnalysis: string[];
 };
 
-async function getByOpportunityId(opportunityId: string): Promise<TrendbriefRecommendation | null> {
+async function getByOpportunityId(
+  opportunityId: string,
+): Promise<TrendbriefRecommendation | null> {
   const rows = await db
     .select()
     .from(trendbriefRecommendations)
@@ -65,4 +68,7 @@ async function upsertForOpportunity(input: {
   return row;
 }
 
-export const TrendbriefRecommendationRepository = { upsertForOpportunity, getByOpportunityId };
+export const TrendbriefRecommendationRepository = {
+  upsertForOpportunity,
+  getByOpportunityId,
+};

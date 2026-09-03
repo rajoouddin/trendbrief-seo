@@ -1,7 +1,10 @@
 export const TRENDBRIEF_EVIDENCE_SOURCES = ["gsc"] as const;
-export type TrendbriefEvidenceSource = (typeof TRENDBRIEF_EVIDENCE_SOURCES)[number];
+export type TrendbriefEvidenceSource =
+  (typeof TRENDBRIEF_EVIDENCE_SOURCES)[number];
 
-export const TRENDBRIEF_EVIDENCE_TYPES = ["gsc_page_query_performance"] as const;
+export const TRENDBRIEF_EVIDENCE_TYPES = [
+  "gsc_page_query_performance",
+] as const;
 export type TrendbriefEvidenceType = (typeof TRENDBRIEF_EVIDENCE_TYPES)[number];
 
 export type GscEvidenceMetrics = {
@@ -26,11 +29,18 @@ export const TRENDBRIEF_OPPORTUNITY_STATUSES = [
 export type TrendbriefOpportunityStatus =
   (typeof TRENDBRIEF_OPPORTUNITY_STATUSES)[number];
 
-export const TRENDBRIEF_RELEVANCE_STATUSES = ["confirmed", "unconfirmed"] as const;
+export const TRENDBRIEF_RELEVANCE_STATUSES = [
+  "confirmed",
+  "unconfirmed",
+] as const;
 export type TrendbriefRelevanceStatus =
   (typeof TRENDBRIEF_RELEVANCE_STATUSES)[number];
 
-export const TRENDBRIEF_ACTION_TYPES = ["accept", "reject", "complete"] as const;
+export const TRENDBRIEF_ACTION_TYPES = [
+  "accept",
+  "reject",
+  "complete",
+] as const;
 export type TrendbriefActionType = (typeof TRENDBRIEF_ACTION_TYPES)[number];
 
 export const TRENDBRIEF_OUTCOME_CLASSIFICATIONS = [

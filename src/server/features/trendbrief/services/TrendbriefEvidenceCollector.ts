@@ -91,4 +91,6 @@ async function collectGscStrikingDistanceEvidence(
   };
 }
 
-export const TrendbriefEvidenceCollector = { collectGscStrikingDistanceEvidence };
+export const TrendbriefEvidenceCollector = {
+  collectGscStrikingDistanceEvidence,
+};

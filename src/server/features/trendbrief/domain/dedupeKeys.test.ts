@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { computeEvidenceDedupeKey, computeOpportunityDedupeKey } from "./dedupeKeys";
+import {
+  computeEvidenceDedupeKey,
+  computeOpportunityDedupeKey,
+} from "./dedupeKeys";
 
 describe("computeEvidenceDedupeKey", () => {
   it("is stable for identical inputs", () => {
@@ -13,7 +16,9 @@ describe("computeEvidenceDedupeKey", () => {
       observationStart: "2026-08-01",
       observationEnd: "2026-08-28",
     };
-    expect(computeEvidenceDedupeKey(input)).toBe(computeEvidenceDedupeKey(input));
+    expect(computeEvidenceDedupeKey(input)).toBe(
+      computeEvidenceDedupeKey(input),
+    );
   });
 
   it("differs when the observation window differs (a new window is new evidence)", () => {
@@ -25,8 +30,16 @@ describe("computeEvidenceDedupeKey", () => {
       subjectUrl: "/tree-removal-cheltenham",
       subjectQuery: "tree removal cheltenham",
     };
-    const a = computeEvidenceDedupeKey({ ...base, observationStart: "2026-08-01", observationEnd: "2026-08-28" });
-    const b = computeEvidenceDedupeKey({ ...base, observationStart: "2026-08-02", observationEnd: "2026-08-29" });
+    const a = computeEvidenceDedupeKey({
+      ...base,
+      observationStart: "2026-08-01",
+      observationEnd: "2026-08-28",
+    });
+    const b = computeEvidenceDedupeKey({
+      ...base,
+      observationStart: "2026-08-02",
+      observationEnd: "2026-08-29",
+    });
     expect(a).not.toBe(b);
   });
 
@@ -55,7 +68,9 @@ describe("computeOpportunityDedupeKey", () => {
       subjectUrl: "/tree-removal-cheltenham",
       subjectQuery: "tree removal cheltenham",
     };
-    expect(computeOpportunityDedupeKey(input)).toBe(computeOpportunityDedupeKey(input));
+    expect(computeOpportunityDedupeKey(input)).toBe(
+      computeOpportunityDedupeKey(input),
+    );
   });
 
   it("differs for a different detector version (old opportunities aren't silently merged into a new detector's identity)", () => {
@@ -65,8 +80,14 @@ describe("computeOpportunityDedupeKey", () => {
       subjectUrl: "/page",
       subjectQuery: "query",
     };
-    const v1 = computeOpportunityDedupeKey({ ...base, detectorKey: "gsc-striking-distance:v1" });
-    const v2 = computeOpportunityDedupeKey({ ...base, detectorKey: "gsc-striking-distance:v2" });
+    const v1 = computeOpportunityDedupeKey({
+      ...base,
+      detectorKey: "gsc-striking-distance:v1",
+    });
+    const v2 = computeOpportunityDedupeKey({
+      ...base,
+      detectorKey: "gsc-striking-distance:v2",
+    });
     expect(v1).not.toBe(v2);
   });
 });

@@ -8,7 +8,10 @@ import {
   type OutcomeMetrics,
   type TrendbriefOutcome,
 } from "../repositories/TrendbriefOutcomeRepository";
-import { OUTCOME_IMPROVEMENT_POSITION_THRESHOLD, SAMPLE_SIZE_CONFIDENCE_CEILING } from "../scoring/constants";
+import {
+  OUTCOME_IMPROVEMENT_POSITION_THRESHOLD,
+  SAMPLE_SIZE_CONFIDENCE_CEILING,
+} from "../scoring/constants";
 import { roundComponent } from "../scoring/util";
 
 export type RecordOutcomeInput = {
@@ -21,8 +24,21 @@ export type RecordOutcomeInput = {
 
 function summarizeRows(rows: GscSearchAnalyticsRow[]): OutcomeMetrics {
   const row = rows[0];
-  if (!row) return { clicks: 0, impressions: 0, ctr: 0, position: null, hasData: false };
-  return { clicks: row.clicks, impressions: row.impressions, ctr: row.ctr, position: row.position, hasData: true };
+  if (!row)
+    return {
+      clicks: 0,
+      impressions: 0,
+      ctr: 0,
+      position: null,
+      hasData: false,
+    };
+  return {
+    clicks: row.clicks,
+    impressions: row.impressions,
+    ctr: row.ctr,
+    position: row.position,
+    hasData: true,
+  };
 }
 
 // Lower position number = closer to page 1 = better. positionDelta > 0 means
@@ -32,21 +48,37 @@ function classifyOutcome(
   comparison: OutcomeMetrics,
 ): TrendbriefOutcomeClassification {
   if (!baseline.hasData || !comparison.hasData) return "inconclusive";
-  if (baseline.position === null || comparison.position === null) return "inconclusive";
+  if (baseline.position === null || comparison.position === null)
+    return "inconclusive";
   const positionDelta = baseline.position - comparison.position;
   const clicksDelta = comparison.clicks - baseline.clicks;
-  if (positionDelta >= OUTCOME_IMPROVEMENT_POSITION_THRESHOLD || clicksDelta > 0) return "improved";
-  if (positionDelta <= -OUTCOME_IMPROVEMENT_POSITION_THRESHOLD || clicksDelta < 0) return "declined";
+  if (
+    positionDelta >= OUTCOME_IMPROVEMENT_POSITION_THRESHOLD ||
+    clicksDelta > 0
+  )
+    return "improved";
+  if (
+    positionDelta <= -OUTCOME_IMPROVEMENT_POSITION_THRESHOLD ||
+    clicksDelta < 0
+  )
+    return "declined";
   return "unchanged";
 }
 
-function computeOutcomeConfidence(baseline: OutcomeMetrics, comparison: OutcomeMetrics): number {
+function computeOutcomeConfidence(
+  baseline: OutcomeMetrics,
+  comparison: OutcomeMetrics,
+): number {
   if (!baseline.hasData || !comparison.hasData) return 0;
   const sampleSize = Math.min(baseline.impressions, comparison.impressions);
-  return roundComponent(Math.min(1, sampleSize / SAMPLE_SIZE_CONFIDENCE_CEILING));
+  return roundComponent(
+    Math.min(1, sampleSize / SAMPLE_SIZE_CONFIDENCE_CEILING),
+  );
 }
 
-async function recordOutcome(input: RecordOutcomeInput): Promise<TrendbriefOutcome> {
+async function recordOutcome(
+  input: RecordOutcomeInput,
+): Promise<TrendbriefOutcome> {
   const opportunity = await TrendbriefOpportunityRepository.getForProject(
     input.projectId,
     input.opportunityId,
@@ -54,8 +86,16 @@ async function recordOutcome(input: RecordOutcomeInput): Promise<TrendbriefOutco
   if (!opportunity) throw new AppError("NOT_FOUND");
 
   const exactMatchFilters = [
-    { dimension: "page" as const, operator: "equals" as const, expression: opportunity.subjectUrl },
-    { dimension: "query" as const, operator: "equals" as const, expression: opportunity.subjectQuery },
+    {
+      dimension: "page" as const,
+      operator: "equals" as const,
+      expression: opportunity.subjectUrl,
+    },
+    {
+      dimension: "query" as const,
+      operator: "equals" as const,
+      expression: opportunity.subjectQuery,
+    },
   ];
 
   const [baselinePerformance, comparisonPerformance] = await Promise.all([

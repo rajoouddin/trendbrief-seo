@@ -1,5 +1,13 @@
 import { sql } from "drizzle-orm";
-import { index, integer, pgTable, real, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  real,
+  serial,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { organization } from "./better-auth-schema";
 import { projects } from "./app.schema";
 
@@ -91,9 +99,7 @@ export const trendbriefOpportunities = pgTable(
       table.projectId,
       table.status,
     ),
-    index("trendbrief_opportunities_organization_idx").on(
-      table.organizationId,
-    ),
+    index("trendbrief_opportunities_organization_idx").on(table.organizationId),
   ],
 );
 
@@ -114,9 +120,7 @@ export const trendbriefOpportunityEvidence = pgTable(
       table.opportunityId,
       table.evidenceId,
     ),
-    index("trendbrief_opportunity_evidence_evidence_idx").on(
-      table.evidenceId,
-    ),
+    index("trendbrief_opportunity_evidence_evidence_idx").on(table.evidenceId),
   ],
 );
 

@@ -33,9 +33,15 @@ export function matchCommercialRelevance(
   keyPages: KeyPageForRelevance[],
 ): CommercialRelevanceMatch {
   const subjectPath = normalizePath(subjectUrl);
-  const match = keyPages.find((page) => normalizePath(page.url) === subjectPath);
+  const match = keyPages.find(
+    (page) => normalizePath(page.url) === subjectPath,
+  );
   if (!match) {
     return { status: "unconfirmed", matchedRole: null, matchedTopic: null };
   }
-  return { status: "confirmed", matchedRole: match.role, matchedTopic: match.topic };
+  return {
+    status: "confirmed",
+    matchedRole: match.role,
+    matchedTopic: match.topic,
+  };
 }
