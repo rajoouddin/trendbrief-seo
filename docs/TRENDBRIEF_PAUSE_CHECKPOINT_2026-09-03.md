@@ -2,387 +2,246 @@
 
 Status: **PAUSED** while Neo v1 is prioritised.
 
-This is the durable handoff for the TrendBrief SEO SaaS work. Resume from this record rather than relying on prior chat history.
+This is the durable handoff for TrendBrief SEO. Resume from this record rather than relying on prior chat history.
 
-## 1. Product direction and decisions already made
+## Product direction
 
-TrendBrief has been repositioned away from the earlier newsletter/trending-topic product direction.
+TrendBrief has been repositioned away from the earlier newsletter/trending-topic direction into a potential low-cost, action-oriented SEO SaaS.
 
-The current hypothesis is a low-cost, action-oriented SEO SaaS built on top of OpenSEO where useful.
+Do **not** position it as a simple cheaper Semrush clone or an OpenSEO rebrand. OpenSEO is the technical/SEO foundation; TrendBrief's differentiation is an evidence-driven decision and workflow layer for non-SEO experts.
 
-The product should **not** be positioned as a simple "cheaper Semrush" or a rebranded OpenSEO fork. OpenSEO itself already provides a low-cost hosted product, so price alone is not a defensible differentiator.
-
-The intended TrendBrief value proposition is:
-
-> TrendBrief tells a non-SEO expert what they should do next to improve organic search performance, explains why it matters, helps them complete the work, and later measures what happened.
-
-The core product loop is:
+Intended product loop:
 
 ```text
 SEO evidence
   -> deterministic opportunity detection
-  -> prioritisation and confidence
+  -> prioritisation/confidence
   -> grounded recommendation
   -> user action
   -> later outcome measurement
   -> next brief
 ```
 
-Key architectural decisions:
+Standing architecture decisions:
 
-1. **Use OpenSEO as a technical foundation, not as the finished product.**
-2. **Retain/reuse underlying SEO acquisition/platform capabilities where sensible.**
-3. **Build a separate TrendBrief intelligence/workflow layer above them.**
-4. **Evidence must precede recommendation.**
-5. **Deterministic rules should identify opportunities before an LLM is used.**
-6. **LLMs may explain, cluster, summarise, and draft, but must not control authorization, billing, measurements, or spend decisions.**
-7. **TrendBrief should be action-centred rather than tool/dashboard-centred.**
-8. **Automatic modification/publishing of customer websites is out of MVP scope.**
-9. **MVP should validate one useful recommendation loop before broad feature expansion.**
-10. **Keep TrendBrief isolated from unrelated ArEm/Enarra/Website Landlord repositories and workflows.**
+1. Reuse OpenSEO platform and SEO acquisition capabilities where sensible.
+2. Keep TrendBrief-specific domain logic isolated above those capabilities.
+3. Evidence must precede recommendations.
+4. Deterministic rules identify opportunities before any LLM enrichment.
+5. LLMs may explain, cluster, summarise and draft, but must not control authorization, billing, measurements or spend decisions.
+6. The product UX should be action-centred rather than a conventional SEO-tool dashboard.
+7. Automatic modification/publishing of customer websites remains outside the initial MVP.
+8. Keep TrendBrief isolated from unrelated ArEm, Enarra, Website Landlord and other repositories/workflows.
 
-## 2. Verified OpenSEO feasibility result
+## OpenSEO feasibility decision
 
-A read-only Codex engineering feasibility assessment was completed before implementation.
+A read-only Codex assessment established that OpenSEO is a credible engineering foundation but not a ready-to-rebrand TrendBrief product.
 
-Assessment baseline at the time of review:
+Original inspected upstream baseline:
 
-- upstream repository: `every-app/open-seo`
-- inspected branch: `main`
+- repository: `every-app/open-seo`
+- branch: `main`
 - inspected commit: `ac9ee482d2b4cd8f472065d6f9b57db35cec560e`
-- package version at that inspected point: `0.1.7`
+- package version at review: `0.1.7`
 
-Overall Codex verdict:
+Verdict: **GO WITH CONDITIONS**.
 
-- **GO, conditionally**
-- complexity classification: **LARGE REWORK**
-- interpretation: OpenSEO is a strong engineering foundation but not a ready-to-rebrand TrendBrief product.
+Useful existing capabilities include organizations/projects, role checks, Better Auth, subscriptions/usage credits, DataForSEO, GSC, GA4, rank tracking, site audits, Cloudflare deployment, D1/Postgres support, workflows/cron, MCP and AI-agent infrastructure.
 
-Verified reusable OpenSEO capabilities include substantial existing support for:
+Important source references from the assessment include:
 
-- organizations and projects
-- role-based membership checks
-- Better Auth
-- hosted/self-hosted deployment modes
-- subscriptions and usage credits
-- DataForSEO integration and metering
-- Google Search Console
-- Google Analytics 4
-- keyword research
-- rank tracking
-- competitor/domain research
-- backlinks
-- site audits
-- Cloudflare Workers deployment
-- PostgreSQL and D1 schema support
-- background workflows and cron
-- MCP and AI-agent infrastructure
-- GDPR-erasure tooling
+- `src/db/better-auth-schema.ts`
+- `src/middleware/ensureUser.ts`
+- `src/serverFunctions/middleware.ts`
+- `src/lib/org-permissions.ts`
+- `src/server/lib/dataforseo/client.ts`
+- `src/server/billing/subscription.ts`
+- `src/shared/gsc.ts`
+- `src/server/features/gsc/services/GscService.ts`
+- `src/server/features/ga4/services/SearchOpportunityService.ts`
+- `src/server/features/rank-tracking/services/scheduledRankChecks.ts`
+- `src/server/lib/audit/url-policy.ts`
+- `src/server/workflows/siteAuditWorkflowCrawl.ts`
+- `src/server/features/sam/samChatTools.ts`
+- `src/server/mcp/server.ts`
+- `runbooks/gdpr-erasure.md`
+- `alchemy.run.ts`
 
-Important implementation evidence identified during the assessment:
+## Repository
 
-- organization/member model: `src/db/better-auth-schema.ts`
-- tenant-aware request middleware: `src/middleware/ensureUser.ts`, `src/serverFunctions/middleware.ts`
-- role/permission logic: `src/lib/org-permissions.ts`
-- DataForSEO charging/client path: `src/server/lib/dataforseo/client.ts`
-- billing/subscription logic: `src/server/billing/subscription.ts`
-- GSC integration: `src/shared/gsc.ts`, `src/server/features/gsc/services/GscService.ts`
-- existing narrow search-opportunity prototype: `src/server/features/ga4/services/SearchOpportunityService.ts`
-- rank scheduler: `src/server/features/rank-tracking/services/scheduledRankChecks.ts`
-- site-audit URL policy: `src/server/lib/audit/url-policy.ts`
-- crawler implementation: `src/server/workflows/siteAuditWorkflowCrawl.ts`
-- audit limits: `src/shared/audit-limits.ts`
-- AI/SAM tool surface: `src/server/features/sam/samChatTools.ts`
-- MCP server: `src/server/mcp/server.ts`
-- GDPR erasure runbook: `runbooks/gdpr-erasure.md`
-- Cloudflare deployment: `alchemy.run.ts`
+Dedicated product repository:
 
-A particularly useful finding is that `SearchOpportunityService.ts` already contains a narrow prototype that joins GSC pages around positions 4–20 with GA4 outcomes and scores demand, business value, and reachability. It is not the TrendBrief domain model, but it provides a useful starting point for the first detector.
-
-## 3. Verified repository state at pause
-
-Dedicated TrendBrief fork:
-
-- repository: `rajoouddin/trendbrief-seo`
-- type: GitHub fork
-- upstream parent/source: `every-app/open-seo`
+- `rajoouddin/trendbrief-seo`
+- GitHub fork of `every-app/open-seo`
 - default branch: `main`
-- visibility: public
-- user has admin/push access
+- public repository
 
-At checkpoint start, fork `main` was at:
-
-`3632f408528cd588fec98c3a174af8ea0ad205e8`
-
-Upstream `every-app/open-seo` `main` was independently checked and was at the same commit:
+The fork was initially synchronized with upstream at:
 
 `3632f408528cd588fec98c3a174af8ea0ad205e8`
 
-Therefore the fork was synchronized with upstream before this documentation-only checkpoint commit.
+The first pause checkpoint was then committed as:
 
-The two commits after the original Codex inspection baseline were upstream commits, not TrendBrief implementation work:
+`c0206b49cf04c1a9b7c5a2725a98a27cb049635d`
 
-- `5b242b225af09974776fa78b7a068c049f435161` — `Blog: Two Surfaces, Two Timelines (#278)`
-- `3632f408528cd588fec98c3a174af8ea0ad205e8` — `Blog: What Broke the $99 Ceiling (#277)`
+## TB-001 — completed and merged
 
-No TB-001 implementation commit existed before this checkpoint.
+TB-001 was subsequently implemented on branch `tb-001`, reviewed, pushed and merged through PR #1:
 
-No TrendBrief-specific source-code changes had been made.
+`https://github.com/rajoouddin/trendbrief-seo/pull/1`
 
-No deployment had been performed.
+Verified PR state:
 
-No production credentials or paid provider actions were used for TrendBrief implementation.
+- PR #1: **merged**
+- title: `TB-001: TrendBrief evidence-driven opportunity domain (vertical slice)`
+- base: `main`
+- head: `tb-001`
+- head SHA: `3e8693bf5490b5061ee216d863cc7daaffa0d10d`
+- merge commit: `afe53865a624a533d549b5dab6ad367a2a3e7a0b`
 
-No unrelated repository was modified as part of this checkpoint.
-
-## 4. Important risks and conditions before public launch
-
-These were identified in the feasibility assessment and remain unresolved.
-
-### High priority
-
-1. **Spend controls are not strong enough for a commercial multi-tenant TrendBrief launch.**
-   - Existing credit admission can permit concurrent expensive calls before actual charges are recorded.
-   - TrendBrief will need atomic reservation/idempotency/per-tenant limits and a global provider-spend circuit breaker before public paid usage.
-
-2. **AI tool permissions are too broad for TrendBrief's intended trust model.**
-   - Existing agent flows can access paid and mutating tools while untrusted scraped content may enter context.
-   - TrendBrief should use narrowly scoped read-only tools by default and deterministic server-side approval for state changes/spend.
-
-### Medium priority
-
-3. **Tenant isolation is application-enforced.**
-   - Existing organization/project scoping is a good base, but there is no database RLS and comprehensive TrendBrief cross-tenant IDOR coverage still needs to be added.
-
-4. **Crawler/onboarding URL handling needs hardening before public SaaS launch.**
-   - Exact-origin validation issue was identified in onboarding sitemap parsing.
-   - DNS resolution fail-open/TOCTOU behaviour should be hardened and regression-tested.
-
-5. **GSC OAuth production readiness is external work.**
-   - Public Google OAuth verification/branding/privacy requirements may affect launch timing.
-
-6. **DataForSEO commercial use must be confirmed for TrendBrief's exact hosted multi-tenant model.**
-   - No technical blocker was found, but written commercial/redistribution confirmation should be obtained before launch.
-
-7. **Privacy/data lifecycle work remains.**
-   - Account/org deletion, retention, DSAR/export, OAuth revocation, processor/subprocessor documentation, analytics/session replay governance, and support/breach processes are not yet TrendBrief-ready.
-
-8. **Pricing is still a hypothesis.**
-   - Initial thinking was approximately £19/month for a one-site Starter plan and approximately £49/month for Growth, but no pricing is approved until per-plan COGS and willingness-to-pay are validated.
-
-## 5. Work deliberately not started
-
-The following have **not** been implemented and should not be treated as completed:
-
-- TrendBrief branding or new UI
-- TrendBrief opportunity/evidence/action/outcome database model
-- TB-001 detector
-- paid-plan changes
-- free diagnostic
-- new onboarding
-- scheduler for TrendBrief briefs
-- notifications
-- automatic website changes
-- AI recommendation orchestration
-- new spend controls
-- new tenancy/RLS changes
-- Google production OAuth work
-- DataForSEO contractual confirmation
-- public deployment
-
-## 6. Agreed MVP validation approach
-
-Do not start by rebuilding all of OpenSEO or reproducing Semrush/Ahrefs feature breadth.
-
-The first proof should be one narrow vertical slice:
+TB-001 implements the first internal TrendBrief vertical slice:
 
 ```text
 GSC evidence
-  -> persisted normalized evidence
-  -> deterministic striking-distance opportunity
-  -> deterministic/grounded recommendation record
-  -> accept/reject/complete lifecycle
-  -> later outcome record
+  -> deterministic striking-distance detection
+  -> persisted opportunity
+  -> deterministic recommendation
+  -> accept/reject/complete action
+  -> outcome comparison
 ```
 
-The first detector should focus on a page/query combination with:
+### Implemented domain layer
 
-- existing Google Search Console impressions
-- average ranking position within a configurable striking-distance range, initially approximately positions 4–20
-- a minimum meaningful impression threshold
-- business relevance either supported by existing structured context or explicitly marked as requiring confirmation
+New TrendBrief feature area under `src/server/features/trendbrief/` with domain, scoring, repository, service and detector components.
 
-No LLM is required for detector execution.
+Six new domain tables were added for both D1 and Postgres:
 
-No new paid DataForSEO calls should be introduced for this first slice.
+- evidence
+- opportunities
+- opportunity/evidence relationships
+- recommendations
+- actions
+- outcomes
 
-## 7. TB-001 domain requirements already decided
+Schema parity is guarded by the existing `schema-parity.test.ts`.
 
-The first TrendBrief domain layer should cover:
+### Detector
 
-### Evidence
+First detector:
 
-Persist normalized, machine-readable source evidence with:
+`gsc-striking-distance:v1`
 
-- organization ID
-- project ID
-- source/evidence type
-- page/URL where relevant
-- query/topic where relevant
-- observation window
-- captured timestamp
-- metrics/value payload
-- lineage/reference
-- freshness
-- deduplication semantics
+It reuses existing `GscService.getPerformance` and does not introduce a new GSC integration or DataForSEO call.
 
-### Opportunity
+Commercial relevance reuses existing `project_key_pages` through `ProjectContextRepository.listKeyPages` rather than inventing an AI relevance model. Projects without configured key pages receive unconfirmed relevance rather than false confirmation.
 
-Persist:
+### Tenant/security boundary
 
-- organization ID
-- project ID
-- detector ID/version
-- type
-- subject URL/query/topic
-- lifecycle status
-- impact
-- effort
-- confidence
-- priority
-- first/last detected
-- stale/expiry handling
-- rationale codes
-- deduplication key
+Four MCP tools were added:
 
-### Opportunity-evidence relationship
+- `analyze_trendbrief_opportunities`
+- `list_trendbrief_opportunities`
+- `set_trendbrief_opportunity_status`
+- `record_trendbrief_outcome`
 
-An opportunity must link back to the exact evidence that produced it.
+They use the existing `withMcpProjectAuth` tenant authorization wrapper.
 
-### Recommendation
+Cross-tenant tests verify that a foreign organization's `projectId` is rejected before TrendBrief service/repository calls execute.
 
-First version should be deterministic and structured. It may state that a page should be investigated/improved and why, but it must not invent content changes not supported by evidence.
+### Verification reported for the merged branch
 
-### Action
+- `npx tsc --noEmit`: clean
+- `npx oxlint . --type-aware`: 0 warnings / 0 errors
+- Prettier: clean on touched files; one pre-existing plan-document formatting issue was intentionally not broadly reformatted
+- full tests: **154 files / 1267 tests passing**
+- D1/Postgres structural parity verified for all six new tables
+- no `dataforseo` references in the new TrendBrief feature
+- repeated analysis with unchanged evidence is idempotent rather than producing duplicate active opportunities
 
-Support at minimum:
+The implementation was built through a 15-task plan with task-level reviews and a final whole-branch review. Review-found defects including outcome misclassification, half-specified date handling, a misleading test name and a vacuous tenant-isolation test were corrected before merge.
 
-- accept
-- reject
-- mark completed
+Architecture record:
 
-### Outcome
+`specs/0012-trendbrief-opportunity-domain.md`
 
-Support later comparison of baseline and comparison windows with classifications such as:
+Implementation plan:
 
-- improved
-- unchanged
-- declined
-- inconclusive
+`docs/superpowers/plans/2026-09-03-tb-001-trendbrief-opportunity-domain.md`
 
-Do not claim causal attribution. Preferred language is equivalent to:
+## Known TB-001 follow-up
 
-> Performance improved after the recorded action.
+These are not blockers for the current pause but must not be forgotten:
 
-not:
+1. TrendBrief multi-write flows are not yet wrapped in `runBatch`; atomicity/round-trip volume should be revisited before scheduled/high-volume operation.
+2. `expired` and `superseded` opportunity states are modelled but are not yet automatically transitioned.
+3. Some list queries remain unbounded and should be reviewed before production scale.
+4. Some planned/dead helper code may remain unwired and can be cleaned when the next slice establishes actual usage.
+5. The local `.worktrees/tb-001` worktree was intentionally retained after the PR for feedback/follow-up; check whether it still exists and is needed when resuming.
 
-> This action caused performance to improve.
+## Broader unresolved launch risks
 
-## 8. Architecture constraints for TB-001
+The original feasibility risks still stand unless explicitly remediated later:
 
-When implementation resumes:
+- atomic/per-tenant/global paid-provider spend controls before commercial paid usage
+- narrow AI tool permissions and prompt-injection protections
+- continued tenant-isolation assurance; existing app-level enforcement has no Postgres RLS
+- crawler/onboarding exact-origin and DNS fail-closed hardening
+- Google production OAuth verification/readiness
+- written confirmation of DataForSEO terms for the exact hosted multi-tenant TrendBrief model
+- privacy/retention/export/deletion/subprocessor work
+- pricing and per-plan COGS validation
 
-- preserve existing OpenSEO auth/org/project/GSC service layers
-- keep TrendBrief-specific logic isolated rather than scattering it across existing feature modules
-- explicitly store `organization_id` and `project_id` on new customer-owned TrendBrief records
-- enforce tenant-aware reads/writes
-- add cross-tenant read/write tests
-- version detectors, for example conceptually `gsc-striking-distance:v1`
-- make repeated analysis idempotent
-- keep scoring deterministic and inspectable
-- keep recommendation provenance traceable
-- preserve D1/Postgres schema-parity conventions unless a reviewed architectural decision changes this
-- do not make MCP the internal orchestration backbone by default
-- do not introduce new paid API calls for the first slice
-- treat search queries, URLs, titles, and external page text as untrusted data
+Initial pricing ideas such as approximately £19 Starter and £49 Growth remain hypotheses, not approved prices.
 
-A suggested module boundary from the prior design is conceptually:
+## Work not yet started/completed
 
-```text
-src/server/features/trendbrief/
-  domain/
-  repositories/
-  services/
-  detectors/
-  scoring/
-```
+Do not treat the following as complete:
 
-This is illustrative; repository conventions should determine final paths.
+- final TrendBrief product UX or branding
+- TB-002 action-oriented interface
+- internal real-world dogfooding of TB-001 with a connected project
+- free diagnostic funnel
+- commercial pricing/entitlement redesign
+- production scheduling/brief generation
+- notifications
+- AI recommendation enrichment/generation layer
+- automatic publishing/site modification
+- production spend-control redesign
+- Google OAuth production work
+- DataForSEO contractual confirmation
+- public TrendBrief deployment
 
-## 9. Acceptance target for the first resumed implementation
+## Recommended next step when work resumes
 
-TB-001 should not be considered successful because it adds many features.
+**Do not reimplement TB-001. It is merged.**
 
-It succeeds only if it proves that TrendBrief can:
+Resume with a controlled verification/review step before TB-002:
 
-1. ingest/normalize real GSC evidence;
-2. identify one useful opportunity deterministically;
-3. explain exactly why the opportunity exists using traceable evidence;
-4. calculate inspectable priority/confidence;
-5. avoid duplicate opportunities on repeated analysis;
-6. maintain organization/project tenant boundaries;
-7. persist a deterministic recommendation;
-8. record accept/reject/complete actions;
-9. create the foundation for later outcome measurement;
-10. do all of the above without new automatic paid provider calls or an LLM dependency.
+1. Open `rajoouddin/trendbrief-seo` in a dedicated TrendBrief session.
+2. Inspect local working tree and `.worktrees/tb-001`; preserve unrelated work and remove nothing blindly.
+3. Fetch `origin` and `upstream` and establish the current divergence since merge commit `afe53865a624a533d549b5dab6ad367a2a3e7a0b`.
+4. Confirm `main` contains PR #1 and run the relevant validation suite if the local environment has changed.
+5. Review `specs/0012-trendbrief-opportunity-domain.md` and PR #1's documented follow-ups.
+6. Perform the intended independent post-merge architecture/security review of TB-001 if that has not already been done by the reviewing agent at the required independence level.
+7. Then define/implement **TB-002 only**: the smallest action-oriented interface that lets an internal user exercise the verified TB-001 lifecycle and dogfood it with real GSC data.
+8. Do not broaden into billing, public launch, AI autopilot or additional SEO detector families until this internal product loop has been tested for actual usefulness.
 
-## 10. Recommended sequence after TB-001
+## RESUME FROM HERE
 
-Do not commit to this sequence until TB-001 is reviewed, but the current expected progression is:
+TrendBrief SEO is paused **after TB-001 implementation and merge**.
 
-1. **TB-001:** evidence/opportunity/action/outcome vertical slice
-2. independent Codex review of TB-001 architecture/security
-3. **TB-002:** minimal action-oriented TrendBrief interface around the verified domain layer
-4. internal dogfooding
-5. free diagnostic experiment
-6. first paid Starter beta only after commercial/security launch conditions are satisfied
+Repository: `rajoouddin/trendbrief-seo`
 
-## 11. Exact recommended next step when work resumes
+Upstream: `every-app/open-seo`
 
-**Do not resume with more broad market research or UI work.**
+TB-001 PR: `#1`
 
-Start a dedicated TrendBrief/OpenSEO coding session rooted in the `rajoouddin/trendbrief-seo` fork and perform a fresh baseline check against `every-app/open-seo`.
+TB-001 head: `3e8693bf5490b5061ee216d863cc7daaffa0d10d`
 
-Then implement **TB-001 only**: the evidence-driven GSC striking-distance vertical slice described above.
+TB-001 merge commit: `afe53865a624a533d549b5dab6ad367a2a3e7a0b`
 
-Before implementation:
+Product decision remains **GO WITH CONDITIONS**.
 
-1. inspect local branch/HEAD/working tree;
-2. fetch `origin` and `upstream`;
-3. verify whether upstream moved since this checkpoint;
-4. review upstream delta before merging/syncing;
-5. preserve any unrelated local changes;
-6. confirm the existing GSC and `SearchOpportunityService` architecture still matches the assumptions in this record;
-7. stop and reassess if upstream changes materially invalidate the design.
+OpenSEO remains the platform/SEO foundation. TrendBrief's differentiator is now represented in code by the evidence -> opportunity -> recommendation -> action -> outcome domain.
 
-Do not start TB-002 or public launch work in the same task.
-
-## 12. RESUME FROM HERE
-
-TrendBrief SEO is paused after feasibility validation and repository establishment, before implementation.
-
-Use repository:
-
-`rajoouddin/trendbrief-seo`
-
-Upstream:
-
-`every-app/open-seo`
-
-The fork was synchronized with upstream at `3632f408528cd588fec98c3a174af8ea0ad205e8` immediately before this checkpoint record was added.
-
-The product decision is **GO WITH CONDITIONS**.
-
-OpenSEO is the underlying platform/SEO foundation. TrendBrief's differentiator is the new evidence -> opportunity -> recommendation -> action -> outcome layer.
-
-**Next task: implement TB-001 only, starting with fresh Git/upstream verification and then the deterministic GSC striking-distance vertical slice. Do not start a rebrand, broad UI work, billing changes, or paid-provider expansion.**
+**Next: verify the merged/local/upstream state, complete any required independent post-merge TB-001 review, then move to TB-002: a minimal internal action-oriented interface for real dogfooding. Do not restart TB-001 or jump to public launch work.**
