@@ -40,8 +40,10 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
     mocks.getForProject.mockResolvedValue({
       id: "opp_1",
       projectId: "project_1",
+      organizationId: "org_1",
       subjectUrl: "/tree-removal-cheltenham",
       subjectQuery: "tree removal cheltenham",
+      status: "completed",
     });
     // Mirrors TrendbriefOutcomeRepository.record's real behavior: attributionNote
     // is hardcoded by the repository itself, independent of whatever the caller
@@ -133,5 +135,89 @@ describe("TrendbriefOutcomeService.recordOutcome", () => {
     ).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
+    expect(mocks.getPerformance).not.toHaveBeenCalled();
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
+
+  it.each(["detected", "accepted", "rejected"])(
+    "rejects a %s opportunity before querying GSC or persisting an outcome",
+    async (status) => {
+      mocks.getForProject.mockResolvedValue({
+        id: "opp_1",
+        organizationId: "org_1",
+        projectId: "project_1",
+        subjectUrl: "/tree-removal-cheltenham",
+        subjectQuery: "tree removal cheltenham",
+        status,
+      });
+
+      await expect(
+        TrendbriefOutcomeService.recordOutcome(baseInput),
+      ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+      expect(mocks.getPerformance).not.toHaveBeenCalled();
+      expect(mocks.record).not.toHaveBeenCalled();
+    },
+  );
+
+  it("allows a completed opportunity and preserves its project and organization scope", async () => {
+    mocks.getPerformance.mockResolvedValue({ rows: [] });
+
+    await TrendbriefOutcomeService.recordOutcome(baseInput);
+
+    expect(mocks.getForProject).toHaveBeenCalledWith("project_1", "opp_1");
+    expect(mocks.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        opportunityId: "opp_1",
+        organizationId: "org_1",
+        projectId: "project_1",
+      }),
+    );
+  });
+
+  it.each([
+    {
+      label: "a reversed baseline window",
+      baselineWindow: { start: "2026-08-28", end: "2026-08-01" },
+      comparisonWindow: { start: "2026-09-01", end: "2026-09-28" },
+    },
+    {
+      label: "a reversed comparison window",
+      baselineWindow: { start: "2026-08-01", end: "2026-08-28" },
+      comparisonWindow: { start: "2026-09-28", end: "2026-09-01" },
+    },
+    {
+      label: "overlapping windows",
+      baselineWindow: { start: "2026-08-01", end: "2026-08-28" },
+      comparisonWindow: { start: "2026-08-28", end: "2026-09-20" },
+    },
+    {
+      label: "a comparison window before the baseline",
+      baselineWindow: { start: "2026-09-01", end: "2026-09-28" },
+      comparisonWindow: { start: "2026-08-01", end: "2026-08-28" },
+    },
+    {
+      label: "an impossible calendar date",
+      baselineWindow: { start: "2026-02-30", end: "2026-03-01" },
+      comparisonWindow: { start: "2026-03-02", end: "2026-03-28" },
+    },
+  ])("rejects $label before querying GSC", async (windows) => {
+    await expect(
+      TrendbriefOutcomeService.recordOutcome({ ...baseInput, ...windows }),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(mocks.getPerformance).not.toHaveBeenCalled();
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
+
+  it("allows adjacent, non-overlapping calendar periods", async () => {
+    mocks.getPerformance.mockResolvedValue({ rows: [] });
+
+    await TrendbriefOutcomeService.recordOutcome({
+      ...baseInput,
+      baselineWindow: { start: "2026-08-01", end: "2026-08-28" },
+      comparisonWindow: { start: "2026-08-29", end: "2026-09-28" },
+    });
+
+    expect(mocks.getPerformance).toHaveBeenCalledTimes(2);
+    expect(mocks.record).toHaveBeenCalledOnce();
   });
 });

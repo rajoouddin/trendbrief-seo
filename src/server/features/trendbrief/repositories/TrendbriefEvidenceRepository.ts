@@ -1,6 +1,7 @@
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { trendbriefEvidence } from "@/db/schema";
+import { computeLegacyEvidenceDedupeKey } from "../domain/dedupeKeys";
 import type {
   GscEvidenceMetrics,
   TrendbriefEvidenceSource,
@@ -23,6 +24,53 @@ async function upsert(input: {
   dedupeKey: string;
 }): Promise<TrendbriefEvidence> {
   const nowIso = new Date().toISOString();
+  const subjectQueryCondition =
+    input.subjectQuery === null || input.subjectQuery === ""
+      ? or(
+          isNull(trendbriefEvidence.subjectQuery),
+          eq(trendbriefEvidence.subjectQuery, ""),
+        )
+      : eq(trendbriefEvidence.subjectQuery, input.subjectQuery);
+  const legacyKey = computeLegacyEvidenceDedupeKey(input);
+  const legacyRows = await db
+    .select()
+    .from(trendbriefEvidence)
+    .where(
+      and(
+        eq(trendbriefEvidence.dedupeKey, legacyKey),
+        eq(trendbriefEvidence.organizationId, input.organizationId),
+        eq(trendbriefEvidence.projectId, input.projectId),
+        eq(trendbriefEvidence.source, input.source),
+        eq(trendbriefEvidence.evidenceType, input.evidenceType),
+        eq(trendbriefEvidence.subjectUrl, input.subjectUrl),
+        subjectQueryCondition,
+        eq(trendbriefEvidence.observationStart, input.observationStart),
+        eq(trendbriefEvidence.observationEnd, input.observationEnd),
+      ),
+    )
+    .limit(1);
+  const legacyRow = legacyRows[0];
+  if (legacyRow) {
+    const [row] = await db
+      .update(trendbriefEvidence)
+      .set({
+        dedupeKey: input.dedupeKey,
+        metrics: JSON.stringify(input.metrics),
+        dataState: input.dataState,
+        capturedAt: nowIso,
+      })
+      .where(
+        and(
+          eq(trendbriefEvidence.id, legacyRow.id),
+          eq(trendbriefEvidence.organizationId, input.organizationId),
+          eq(trendbriefEvidence.projectId, input.projectId),
+        ),
+      )
+      .returning();
+    if (!row) throw new Error("Failed to rekey trendbrief_evidence");
+    return row;
+  }
+
   const [row] = await db
     .insert(trendbriefEvidence)
     .values({

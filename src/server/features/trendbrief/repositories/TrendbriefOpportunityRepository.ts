@@ -1,6 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { trendbriefOpportunities } from "@/db/schema";
+import { computeLegacyOpportunityDedupeKey } from "../domain/dedupeKeys";
 import type {
   TrendbriefOpportunityStatus,
   TrendbriefRelevanceStatus,
@@ -26,13 +27,25 @@ export type DetectionUpsertInput = {
   dedupeKey: string;
 };
 
-async function getByDedupeKey(
+async function getMatchingByDedupeKey(
   dedupeKey: string,
+  input: DetectionUpsertInput,
 ): Promise<TrendbriefOpportunity | null> {
   const rows = await db
     .select()
     .from(trendbriefOpportunities)
-    .where(eq(trendbriefOpportunities.dedupeKey, dedupeKey))
+    .where(
+      and(
+        eq(trendbriefOpportunities.dedupeKey, dedupeKey),
+        eq(trendbriefOpportunities.organizationId, input.organizationId),
+        eq(trendbriefOpportunities.projectId, input.projectId),
+        eq(trendbriefOpportunities.detectorId, input.detectorId),
+        eq(trendbriefOpportunities.detectorVersion, input.detectorVersion),
+        eq(trendbriefOpportunities.type, input.type),
+        eq(trendbriefOpportunities.subjectUrl, input.subjectUrl),
+        eq(trendbriefOpportunities.subjectQuery, input.subjectQuery),
+      ),
+    )
     .limit(1);
   return rows[0] ?? null;
 }
@@ -40,7 +53,15 @@ async function getByDedupeKey(
 async function upsertFromDetection(
   input: DetectionUpsertInput,
 ): Promise<{ opportunity: TrendbriefOpportunity; wasNew: boolean }> {
-  const existing = await getByDedupeKey(input.dedupeKey);
+  const current = await getMatchingByDedupeKey(input.dedupeKey, input);
+  const legacyKey = computeLegacyOpportunityDedupeKey({
+    organizationId: input.organizationId,
+    projectId: input.projectId,
+    detectorKey: `${input.detectorId}:${input.detectorVersion}`,
+    subjectUrl: input.subjectUrl,
+    subjectQuery: input.subjectQuery,
+  });
+  const existing = current ?? (await getMatchingByDedupeKey(legacyKey, input));
   const nowIso = new Date().toISOString();
 
   if (!existing) {
@@ -85,10 +106,17 @@ async function upsertFromDetection(
       relevanceStatus: input.relevanceStatus,
       lastDetectedAt: nowIso,
       expiresAt: input.expiresAt,
+      dedupeKey: input.dedupeKey,
       status: existing.status,
       updatedAt: nowIso,
     })
-    .where(eq(trendbriefOpportunities.id, existing.id))
+    .where(
+      and(
+        eq(trendbriefOpportunities.id, existing.id),
+        eq(trendbriefOpportunities.organizationId, input.organizationId),
+        eq(trendbriefOpportunities.projectId, input.projectId),
+      ),
+    )
     .returning();
   if (!row) throw new Error("Failed to update trendbrief_opportunity");
   return { opportunity: row, wasNew: false };

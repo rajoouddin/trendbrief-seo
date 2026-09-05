@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   analyzeTrendbriefOpportunitiesTool,
   listTrendbriefOpportunitiesTool,
+  recordTrendbriefOutcomeTool,
   setTrendbriefOpportunityStatusTool,
 } from "./trendbrief-tools";
 import { makeToolContext } from "./tool-test-support";
@@ -191,5 +192,29 @@ describe("list_trendbrief_opportunities", () => {
       | Array<{ id: string }>
       | undefined;
     expect(rows?.[0]?.id).toBe("opp_2");
+  });
+});
+
+describe("record_trendbrief_outcome input validation", () => {
+  it("rejects impossible calendar dates at the MCP boundary", () => {
+    const result = recordTrendbriefOutcomeTool.config.inputSchema.safeParse({
+      projectId: "project_1",
+      opportunityId: "opp_1",
+      baselineWindow: { start: "2026-02-30", end: "2026-03-01" },
+      comparisonWindow: { start: "2026-03-02", end: "2026-03-28" },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects overlapping windows at the MCP boundary", () => {
+    const result = recordTrendbriefOutcomeTool.config.inputSchema.safeParse({
+      projectId: "project_1",
+      opportunityId: "opp_1",
+      baselineWindow: { start: "2026-08-01", end: "2026-08-28" },
+      comparisonWindow: { start: "2026-08-28", end: "2026-09-28" },
+    });
+
+    expect(result.success).toBe(false);
   });
 });

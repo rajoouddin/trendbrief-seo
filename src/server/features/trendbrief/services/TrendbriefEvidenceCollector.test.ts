@@ -85,6 +85,7 @@ describe("TrendbriefEvidenceCollector.collectGscStrikingDistanceEvidence", () =>
     expect(upsertInput.projectId).toBe("project_1");
     expect(upsertInput.observationStart).toBe("2026-08-01");
     expect(upsertInput.observationEnd).toBe("2026-08-28");
+    expect(upsertInput.dedupeKey).toMatch(/^v2:/);
   });
 
   it("skips a row with fewer than two dimension keys (no query dimension)", async () => {

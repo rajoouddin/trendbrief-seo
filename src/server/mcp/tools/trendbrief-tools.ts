@@ -8,6 +8,7 @@ import {
   type ProposedAction,
 } from "@/server/features/trendbrief/repositories/TrendbriefRecommendationRepository";
 import { TRENDBRIEF_OPPORTUNITY_STATUSES } from "@/server/features/trendbrief/domain/types";
+import { outcomeWindowsSchema } from "@/server/features/trendbrief/domain/outcomeWindows";
 import { buildProjectMeta } from "@/server/mcp/context";
 import { mcpResponse } from "@/server/mcp/formatters";
 import { looseObjectOutputSchema } from "@/server/mcp/output-schemas";
@@ -209,12 +210,9 @@ export const setTrendbriefOpportunityStatusTool = {
 
 // --- record_trendbrief_outcome ------------------------------------------------
 
-const windowSchema = z.object({ start: dateSchema, end: dateSchema });
-const recordOutcomeInputSchema = z.strictObject({
+const recordOutcomeInputSchema = outcomeWindowsSchema.safeExtend({
   projectId: projectIdSchema,
   opportunityId: z.string().min(1),
-  baselineWindow: windowSchema,
-  comparisonWindow: windowSchema,
 });
 type RecordOutcomeArgs = z.infer<typeof recordOutcomeInputSchema>;
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   computeEvidenceDedupeKey,
+  computeLegacyEvidenceDedupeKey,
+  computeLegacyOpportunityDedupeKey,
   computeOpportunityDedupeKey,
 } from "./dedupeKeys";
 
@@ -57,6 +59,44 @@ describe("computeEvidenceDedupeKey", () => {
     const withEmpty = computeEvidenceDedupeKey({ ...base, subjectQuery: "" });
     expect(withNull).toBe(withEmpty);
   });
+
+  it("does not collide when components contain the legacy :: delimiter", () => {
+    const shared = {
+      organizationId: "org_1",
+      projectId: "project_1",
+      source: "gsc" as const,
+      evidenceType: "gsc_page_query_performance" as const,
+      observationStart: "2026-08-01",
+      observationEnd: "2026-08-28",
+    };
+
+    const first = computeEvidenceDedupeKey({
+      ...shared,
+      subjectUrl: "/page::part",
+      subjectQuery: "query",
+    });
+    const second = computeEvidenceDedupeKey({
+      ...shared,
+      subjectUrl: "/page",
+      subjectQuery: "part::query",
+    });
+
+    expect(first).not.toBe(second);
+    expect(first).toMatch(/^v2:/);
+    expect(
+      computeLegacyEvidenceDedupeKey({
+        ...shared,
+        subjectUrl: "/page::part",
+        subjectQuery: "query",
+      }),
+    ).toBe(
+      computeLegacyEvidenceDedupeKey({
+        ...shared,
+        subjectUrl: "/page",
+        subjectQuery: "part::query",
+      }),
+    );
+  });
 });
 
 describe("computeOpportunityDedupeKey", () => {
@@ -89,5 +129,39 @@ describe("computeOpportunityDedupeKey", () => {
       detectorKey: "gsc-striking-distance:v2",
     });
     expect(v1).not.toBe(v2);
+  });
+
+  it("does not collide when components contain the legacy :: delimiter", () => {
+    const shared = {
+      organizationId: "org_1",
+      projectId: "project_1",
+      subjectQuery: "query",
+    };
+    const first = computeOpportunityDedupeKey({
+      ...shared,
+      detectorKey: "detector::v1",
+      subjectUrl: "/page",
+    });
+    const second = computeOpportunityDedupeKey({
+      ...shared,
+      detectorKey: "detector",
+      subjectUrl: "v1::/page",
+    });
+
+    expect(first).not.toBe(second);
+    expect(first).toMatch(/^v2:/);
+    expect(
+      computeLegacyOpportunityDedupeKey({
+        ...shared,
+        detectorKey: "detector::v1",
+        subjectUrl: "/page",
+      }),
+    ).toBe(
+      computeLegacyOpportunityDedupeKey({
+        ...shared,
+        detectorKey: "detector",
+        subjectUrl: "v1::/page",
+      }),
+    );
   });
 });
