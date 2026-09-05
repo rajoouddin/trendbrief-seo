@@ -168,15 +168,53 @@ Implementation plan:
 
 `docs/superpowers/plans/2026-09-03-tb-001-trendbrief-opportunity-domain.md`
 
+## TB-001 post-merge hardening — completed and merged
+
+The five valid findings from the post-TB-001 review were remediated on
+`fix/tb-001-review-hardening` and merged through PR #2:
+
+`https://github.com/rajoouddin/trendbrief-seo/pull/2`
+
+Verified integration state:
+
+- PR #2: **merged**
+- head SHA: `a479e0997ba95bd55b008316e7c228990803a165`
+- merge commit: `5f8c878b1a3ad5d2f7db998abc7b6c786a532d5d`
+- merge method: merge commit
+
+The hardening change provides:
+
+1. completed-only outcome measurement;
+2. real, ordered and non-overlapping outcome windows;
+3. complete outcome-window refresh during outcome upsert;
+4. latest-action actor attribution on action updates; and
+5. unambiguous versioned dedupe keys, with natural-key-scoped legacy lookup
+   and lazy rekeying when a matching legacy row is touched.
+
+Final validation of the PR head passed 18 targeted TrendBrief/schema/MCP test
+files with 301 tests, including cross-tenant MCP rejection tests; the full
+repository suite passed 155 files with 1,287 tests. TypeScript, type-aware
+Oxlint, touched-file Prettier and `git diff --check` were clean. An independent
+Claude Code final review returned **PASS** with no blocking findings. The merge
+tree was verified to contain the PR head exactly for the affected TrendBrief
+and MCP paths, and the 301-test targeted suite plus TypeScript were rerun after
+merge. No paid-provider integration, new infrastructure or TB-002 product work
+was introduced.
+
 ## Known TB-001 follow-up
 
 These are not blockers for the current pause but must not be forgotten:
 
-1. TrendBrief multi-write flows are not yet wrapped in `runBatch`; atomicity/round-trip volume should be revisited before scheduled/high-volume operation.
-2. `expired` and `superseded` opportunity states are modelled but are not yet automatically transitioned.
-3. Some list queries remain unbounded and should be reviewed before production scale.
-4. Some planned/dead helper code may remain unwired and can be cleaned when the next slice establishes actual usage.
-5. The local `.worktrees/tb-001` worktree was intentionally retained after the PR for feedback/follow-up; check whether it still exists and is needed when resuming.
+1. Legacy dedupe keys migrate lazily only when the matching row is touched.
+2. Historical data already lost through a genuine legacy dedupe-key collision
+   cannot be reconstructed automatically without replaying external evidence.
+3. TrendBrief multi-write flows are not yet wrapped in `runBatch`; the
+   documented atomicity and round-trip-volume limitation remains intentionally
+   outside the hardening scope and must be revisited before scheduled or
+   high-volume operation.
+4. `expired` and `superseded` opportunity states are modelled but are not yet automatically transitioned.
+5. Some list queries remain unbounded and should be reviewed before production scale.
+6. Some planned/dead helper code may remain unwired and can be cleaned only when an established use warrants it.
 
 ## Broader unresolved launch risks
 
@@ -213,18 +251,19 @@ Do not treat the following as complete:
 
 ## Recommended next step when work resumes
 
-**Do not reimplement TB-001. It is merged.**
+**Do not reimplement TB-001 or assume TB-002 is next. Both TB-001 and its
+post-merge hardening are integrated.**
 
-Resume with a controlled verification/review step before TB-002:
+TrendBrief now returns to product/commercial validation and MVP definition.
+The next product decision must establish:
 
-1. Open `rajoouddin/trendbrief-seo` in a dedicated TrendBrief session.
-2. Inspect local working tree and `.worktrees/tb-001`; preserve unrelated work and remove nothing blindly.
-3. Fetch `origin` and `upstream` and establish the current divergence since merge commit `afe53865a624a533d549b5dab6ad367a2a3e7a0b`.
-4. Confirm `main` contains PR #1 and run the relevant validation suite if the local environment has changed.
-5. Review `specs/0012-trendbrief-opportunity-domain.md` and PR #1's documented follow-ups.
-6. Perform the intended independent post-merge architecture/security review of TB-001 if that has not already been done by the reviewing agent at the required independence level.
-7. Then define/implement **TB-002 only**: the smallest action-oriented interface that lets an internal user exercise the verified TB-001 lifecycle and dogfood it with real GSC data.
-8. Do not broaden into billing, public launch, AI autopilot or additional SEO detector families until this internal product loop has been tested for actual usefulness.
+> What is the smallest SEO problem TrendBrief can solve clearly and usefully
+> for a specific customer who will pay for it?
+
+Do not begin a new detector family, public UI, billing, AI recommendations,
+scheduling, automatic publishing, paid API integration, new infrastructure or
+speculative Semrush/Ahrefs-style capability until that decision is made. No
+TB-002 implementation work has begun.
 
 ## RESUME FROM HERE
 
@@ -240,8 +279,16 @@ TB-001 head: `3e8693bf5490b5061ee216d863cc7daaffa0d10d`
 
 TB-001 merge commit: `afe53865a624a533d549b5dab6ad367a2a3e7a0b`
 
+TB-001 hardening PR: `#2`
+
+TB-001 hardening head: `a479e0997ba95bd55b008316e7c228990803a165`
+
+TB-001 hardening merge commit: `5f8c878b1a3ad5d2f7db998abc7b6c786a532d5d`
+
 Product decision remains **GO WITH CONDITIONS**.
 
 OpenSEO remains the platform/SEO foundation. TrendBrief's differentiator is now represented in code by the evidence -> opportunity -> recommendation -> action -> outcome domain.
 
-**Next: verify the merged/local/upstream state, complete any required independent post-merge TB-001 review, then move to TB-002: a minimal internal action-oriented interface for real dogfooding. Do not restart TB-001 or jump to public launch work.**
+**Next: product/commercial validation and MVP definition. Determine the
+smallest clearly useful SEO problem for a specific paying customer. Do not
+start TB-002 or another product feature until that decision is established.**
