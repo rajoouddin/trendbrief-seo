@@ -1,6 +1,6 @@
 # TrendBrief pause checkpoint — 2026-09-03
 
-Status: **PAUSED** while Neo v1 is prioritised.
+Status: **PRODUCT / COMMERCIAL VALIDATION APPROVED; TB-002 NOT AUTHORISED**.
 
 This is the durable handoff for TrendBrief SEO. Resume from this record rather than relying on prior chat history.
 
@@ -292,3 +292,39 @@ OpenSEO remains the platform/SEO foundation. TrendBrief's differentiator is now 
 **Next: product/commercial validation and MVP definition. Determine the
 smallest clearly useful SEO problem for a specific paying customer. Do not
 start TB-002 or another product feature until that decision is established.**
+
+## Product-validation direction approved — 2026-09-05
+
+Raj approved the product-validation direction recommended by ChatGPT through
+the Neo advisor bridge:
+
+> Test a GSC-first “three actions that matter” workflow for freelance
+> web/marketing consultants and micro-agencies managing roughly 3–20 SMB
+> websites.
+
+The narrow job is to turn existing GSC evidence into at most three prioritised,
+understandable SEO actions, retain the operator's decision, and later compare
+before/after evidence. This remains a falsifiable hypothesis rather than proof
+of demand or an approved final product promise.
+
+The approved validation sequence is:
+
+1. at least eight qualified problem interviews;
+2. a five-user, two-cycle concierge pilot using authorised real GSC data; and
+3. real willingness-to-pay testing at £19–£29/month.
+
+No TB-002 implementation is authorised unless all recorded thresholds pass.
+The durable validation plan, interview guide, pilot workflow, scorecards,
+privacy boundaries and GO/NO-GO rules are in:
+
+`docs/TRENDBRIEF_MVP_VALIDATION_PLAN.md`
+
+Decision evidence:
+
+- advisor request and response: `rajoouddin/neo` issue #2;
+- request ID: `NEO-ADV-20260905-195516Z`; and
+- Raj approval record:
+  `https://github.com/rajoouddin/neo/issues/2#issuecomment-5554440117`.
+
+**Next permitted work: Stage 1 prospect recruitment and problem interviews.
+Do not build a public UI, new detector, paid-data integration or TB-002.**
