@@ -50,6 +50,10 @@ async function record(input: {
         trendbriefOutcomes.comparisonWindowEnd,
       ],
       set: {
+        baselineWindowStart: input.baselineWindowStart,
+        baselineWindowEnd: input.baselineWindowEnd,
+        comparisonWindowStart: input.comparisonWindowStart,
+        comparisonWindowEnd: input.comparisonWindowEnd,
         measuredMetrics: JSON.stringify(input.measuredMetrics),
         classification: input.classification,
         confidenceScore: input.confidenceScore,

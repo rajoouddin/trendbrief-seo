@@ -2,6 +2,10 @@ import { GscService } from "@/server/features/gsc/services/GscService";
 import { AppError } from "@/server/lib/errors";
 import type { GscSearchAnalyticsRow } from "@/server/lib/gscClient";
 import type { TrendbriefOutcomeClassification } from "../domain/types";
+import {
+  outcomeWindowsSchema,
+  type OutcomeWindows,
+} from "../domain/outcomeWindows";
 import { TrendbriefOpportunityRepository } from "../repositories/TrendbriefOpportunityRepository";
 import {
   TrendbriefOutcomeRepository,
@@ -14,12 +18,10 @@ import {
 } from "../scoring/constants";
 import { roundComponent } from "../scoring/util";
 
-export type RecordOutcomeInput = {
+export type RecordOutcomeInput = OutcomeWindows & {
   organizationId: string;
   projectId: string;
   opportunityId: string;
-  baselineWindow: { start: string; end: string };
-  comparisonWindow: { start: string; end: string };
 };
 
 function summarizeRows(rows: GscSearchAnalyticsRow[]): OutcomeMetrics {
@@ -81,11 +83,25 @@ function computeOutcomeConfidence(
 async function recordOutcome(
   input: RecordOutcomeInput,
 ): Promise<TrendbriefOutcome> {
+  const windows = outcomeWindowsSchema.safeParse({
+    baselineWindow: input.baselineWindow,
+    comparisonWindow: input.comparisonWindow,
+  });
+  if (!windows.success) {
+    throw new AppError("VALIDATION_ERROR", windows.error.issues[0]?.message);
+  }
+
   const opportunity = await TrendbriefOpportunityRepository.getForProject(
     input.projectId,
     input.opportunityId,
   );
   if (!opportunity) throw new AppError("NOT_FOUND");
+  if (opportunity.status !== "completed") {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "An outcome can only be recorded after the opportunity action is completed.",
+    );
+  }
 
   const exactMatchFilters = [
     {

@@ -105,8 +105,11 @@ describe("TrendbriefAnalysisService.analyzeProject", () => {
     expect(mocks.linkEvidence).toHaveBeenCalledWith("opp_1", ["evidence_1"]);
     expect(mocks.upsertForOpportunity).toHaveBeenCalledTimes(1);
     const detectionArgs = mocks.upsertFromDetection.mock.calls[0][0];
+    expect(detectionArgs.organizationId).toBe("org_1");
+    expect(detectionArgs.projectId).toBe("project_1");
     expect(detectionArgs.detectorId).toBe("gsc-striking-distance");
     expect(detectionArgs.detectorVersion).toBe("v1");
+    expect(detectionArgs.dedupeKey).toMatch(/^v2:/);
   });
 
   it("re-running analysis with identical evidence updates the existing opportunity instead of creating a second one", async () => {

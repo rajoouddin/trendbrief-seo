@@ -8,9 +8,17 @@ type InsertedOutcomeValues = {
   attributionNote: string;
 };
 
+type OutcomeConflictSet = {
+  baselineWindowStart?: string;
+  baselineWindowEnd?: string;
+  comparisonWindowStart?: string;
+  comparisonWindowEnd?: string;
+};
+
 const mocks = vi.hoisted(() => ({
   insert: vi.fn(),
   insertedValues: undefined as InsertedOutcomeValues | undefined,
+  conflictSet: undefined as OutcomeConflictSet | undefined,
 }));
 
 vi.mock("cloudflare:workers", () => ({ env: {} }));
@@ -20,6 +28,7 @@ describe("TrendbriefOutcomeRepository.record", () => {
   beforeEach(() => {
     mocks.insert.mockReset();
     mocks.insertedValues = undefined;
+    mocks.conflictSet = undefined;
     const builder = {
       values: vi.fn(),
       onConflictDoUpdate: vi.fn(),
@@ -29,7 +38,12 @@ describe("TrendbriefOutcomeRepository.record", () => {
       mocks.insertedValues = values;
       return builder;
     });
-    builder.onConflictDoUpdate.mockReturnValue(builder);
+    builder.onConflictDoUpdate.mockImplementation(
+      (input: { set: OutcomeConflictSet }) => {
+        mocks.conflictSet = input.set;
+        return builder;
+      },
+    );
     mocks.insert.mockReturnValue(builder);
   });
 
@@ -75,5 +89,42 @@ describe("TrendbriefOutcomeRepository.record", () => {
     expect(note).not.toContain("caused");
     expect(note).not.toContain("causes");
     expect(note).not.toContain("causing");
+  });
+
+  it("updates all four measurement-window columns on conflict", async () => {
+    await TrendbriefOutcomeRepository.record({
+      opportunityId: "opp_1",
+      organizationId: "org_1",
+      projectId: "project_1",
+      baselineWindowStart: "2026-07-01",
+      baselineWindowEnd: "2026-07-31",
+      comparisonWindowStart: "2026-08-01",
+      comparisonWindowEnd: "2026-08-31",
+      measuredMetrics: {
+        baseline: {
+          clicks: 10,
+          impressions: 200,
+          ctr: 0.05,
+          position: 8,
+          hasData: true,
+        },
+        comparison: {
+          clicks: 12,
+          impressions: 220,
+          ctr: 0.055,
+          position: 7,
+          hasData: true,
+        },
+      },
+      classification: "improved",
+      confidenceScore: 0.8,
+    });
+
+    expect(mocks.conflictSet).toMatchObject({
+      baselineWindowStart: "2026-07-01",
+      baselineWindowEnd: "2026-07-31",
+      comparisonWindowStart: "2026-08-01",
+      comparisonWindowEnd: "2026-08-31",
+    });
   });
 });

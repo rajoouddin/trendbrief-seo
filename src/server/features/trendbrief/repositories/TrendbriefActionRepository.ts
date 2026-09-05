@@ -70,6 +70,7 @@ async function recordAction(input: {
     .set({
       actionType: input.actionType,
       status,
+      actor: input.actor,
       notes: input.notes ?? existing.notes,
       ...timestampFields,
       updatedAt: nowIso,
