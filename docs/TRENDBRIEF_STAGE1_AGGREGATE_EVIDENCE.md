@@ -1,6 +1,6 @@
 # TrendBrief Stage 1 aggregate evidence record
 
-Status: **ACTIVE — 30 PLAUSIBLE PROSPECTS RESEARCHED; 0 QUALIFIED INTERVIEWS COMPLETED**
+Status: **ACTIVE — 30 PLAUSIBLE PROSPECTS RESEARCHED; WAVE 1 OUTREACH INITIATED FOR 5; 0 QUALIFIED INTERVIEWS COMPLETED**
 
 - Authority: `docs/TRENDBRIEF_MVP_VALIDATION_PLAN.md`
 - Operational runbook: `docs/TRENDBRIEF_STAGE1_OUTREACH_INTERVIEW_RUNBOOK.md`
@@ -12,13 +12,18 @@ This file contains only anonymised, aggregate-safe evidence. Identifying prospec
 | Measure                                                                                                              | Current |                                    Required |
 | -------------------------------------------------------------------------------------------------------------------- | ------: | ------------------------------------------: |
 | Plausible prospects researched                                                                                       |      30 |                         Approximately 25–40 |
-| Outreach sent                                                                                                        |       0 |     Operational, not a validation threshold |
-| Responses                                                                                                            |       0 |     Operational, not a validation threshold |
+| Prospects with outreach initiated (connection request or direct interview request sent)                              |       5 |     Operational, not a validation threshold |
+| — of which: connection request sent only (interview request not yet delivered)                                       |       4 |     Operational, not a validation threshold |
+| — of which: direct interview request sent (contact form/email)                                                       |       1 |     Operational, not a validation threshold |
+| Prospects held for a later wave (not contacted this wave; not a rejection)                                           |       2 |     Operational, not a validation threshold |
+| Responses received                                                                                                   |       0 |     Operational, not a validation threshold |
 | Interviews scheduled                                                                                                 |       0 |     Operational, not a validation threshold |
 | Qualified interviews completed                                                                                       |       0 |                                  At least 8 |
 | Qualified participants independently describing material recurring prioritisation/actionability/time-to-insight pain |     0/0 |                                At least 5/8 |
 | Qualified participants currently paying for SEO tooling or paid SEO work/services                                    |     0/0 |                                At least 3/8 |
 | Qualified participants willing to consider a defined concierge pilot                                                 |     0/0 | Evidence only; not a Stage 1 pass threshold |
+
+A connection request being accepted is not qualification and is not counted toward any Stage 1 threshold above — those thresholds require completed qualified interviews only.
 
 ## Evidence patterns
 

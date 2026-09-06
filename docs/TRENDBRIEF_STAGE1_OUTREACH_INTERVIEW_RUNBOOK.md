@@ -42,6 +42,7 @@ Allowed pipeline states:
 ```text
 researched
 ready_for_outreach
+connection_request_sent
 outreach_sent
 follow_up_sent
 responded
@@ -51,6 +52,8 @@ closed_no_response
 closed_declined
 closed_not_qualified
 ```
+
+`connection_request_sent` applies only to a social-platform connection/follow request (for example, a LinkedIn connection request) sent before the actual interview ask. Do not record `outreach_sent` until the interview request itself — the message asking for 15–20 minutes — has actually been delivered (by DM after acceptance, by email, or by contact form). A prospect can sit in `connection_request_sent` for some time while awaiting acceptance; that is not the same state as `outreach_sent`.
 
 Allowed qualification states:
 
