@@ -34,6 +34,11 @@ export const getAuditHistorySchema = z.object({
   projectId: z.string().min(1),
 });
 
+export const getAuditComparisonSchema = z.object({
+  projectId: z.string().min(1),
+  auditId: z.string().min(1),
+});
+
 export const deleteAuditSchema = z.object({
   projectId: z.string().min(1),
   auditId: z.string().min(1),

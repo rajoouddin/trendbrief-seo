@@ -6,6 +6,7 @@ import { captureServerEvent } from "@/server/lib/posthog";
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
   deleteAuditSchema,
+  getAuditComparisonSchema,
   getAuditHistorySchema,
   getAuditResultsSchema,
   getAuditStatusSchema,
@@ -65,6 +66,13 @@ export const getAuditHistory = createServerFn({ method: "POST" })
   .validator(getAuditHistorySchema)
   .handler(async ({ context }) => {
     return AuditService.getHistory(context.projectId);
+  });
+
+export const getAuditComparison = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(getAuditComparisonSchema)
+  .handler(async ({ data, context }) => {
+    return AuditService.getComparison(data.auditId, context.projectId);
   });
 
 export const getCrawlProgress = createServerFn({ method: "POST" })

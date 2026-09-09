@@ -20,6 +20,12 @@ import {
   type LighthouseStrategy,
 } from "@/server/lib/audit/types";
 import {
+  buildRerunDiff,
+  buildRerunDiffUnavailable,
+  hostnameOf,
+  type RerunDiff,
+} from "@/shared/audit-health";
+import {
   normalizeAndValidateStartUrl,
   resolveStartUrlRedirects,
 } from "@/server/lib/audit/url-policy";
@@ -216,6 +222,64 @@ async function getHistory(projectId: string) {
   });
 }
 
+/**
+ * Re-run comparison against the most recent previous completed audit for the
+ * same project and site. The diff itself is pure (shared/audit-health); this
+ * only enforces the comparison's boundaries: project/tenant scoping via the
+ * repository, a completed current audit, existence of a previous audit, and
+ * same-site (same canonical hostname) — anything else is returned as an
+ * explicit "not comparable" rather than misleading counts.
+ */
+async function getComparison(
+  auditId: string,
+  projectId: string,
+): Promise<RerunDiff> {
+  const current = await AuditRepository.getAuditForProject(auditId, projectId);
+  if (!current) throw new AppError("NOT_FOUND");
+
+  if (current.status !== "completed") {
+    return buildRerunDiffUnavailable("incomplete");
+  }
+
+  const previous = await AuditRepository.getPreviousCompletedAuditForProject(
+    auditId,
+    projectId,
+  );
+  if (!previous) return buildRerunDiffUnavailable("no-previous");
+
+  const sameSite =
+    hostnameOf(current.startUrl) !== "" &&
+    hostnameOf(current.startUrl) === hostnameOf(previous.startUrl);
+  if (!sameSite) return buildRerunDiffUnavailable("different-site");
+
+  const currentConfig = parseAuditConfig(current.config);
+  const previousConfig = parseAuditConfig(previous.config);
+  if (!currentConfig || !previousConfig) {
+    throw new AppError("INTERNAL_ERROR", "Invalid audit configuration");
+  }
+
+  const [currentIssues, previousIssues] = await Promise.all([
+    AuditRepository.getIssuesForAudit(auditId, {}),
+    AuditRepository.getIssuesForAudit(previous.id, {}),
+  ]);
+
+  return buildRerunDiff({
+    currentIssues,
+    previousIssues,
+    currentScope: {
+      pagesCrawled: current.pagesCrawled,
+      maxPages: currentConfig.maxPages,
+    },
+    previousScope: {
+      pagesCrawled: previous.pagesCrawled,
+      maxPages: previousConfig.maxPages,
+    },
+    sameSite,
+    currentStartedAt: current.startedAt,
+    previousStartedAt: previous.startedAt,
+  });
+}
+
 async function getCrawlProgress(auditId: string, projectId: string) {
   const audit = await AuditRepository.getAuditForProject(auditId, projectId);
   if (!audit) {
@@ -283,5 +347,6 @@ export const AuditService = {
   getCrawlProgress,
   getResults,
   getHistory,
+  getComparison,
   remove,
 } as const;
