@@ -116,6 +116,15 @@ export function runPageReporters(page: CrawledPageResult): DetectedIssue[] {
       xRobotsTag: page.xRobotsTag,
     });
   }
+  // A noindex URL in the sitemap sends explicitly contradictory signals:
+  // the sitemap nominates the URL for crawling/indexing while the page
+  // asks to be left out of the index. Deterministic — no inference needed.
+  if (page.inSitemap && !page.isIndexable) {
+    report("sitemap-noindex-conflict", {
+      robotsMeta: page.robotsMeta,
+      xRobotsTag: page.xRobotsTag,
+    });
+  }
   if (
     page.canonicalUrl &&
     page.headerCanonicalUrl &&

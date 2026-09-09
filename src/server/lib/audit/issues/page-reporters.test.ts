@@ -173,6 +173,44 @@ describe("runPageReporters", () => {
     ).not.toContain("canonicalized-page");
   });
 
+  it("flags a non-indexable page that is also in the sitemap", () => {
+    const issues = runPageReporters(
+      makePage({
+        isIndexable: false,
+        robotsMeta: "noindex",
+        inSitemap: true,
+      }),
+    );
+    expect(issues.map((issue) => issue.issueType)).toContain(
+      "sitemap-noindex-conflict",
+    );
+    const conflict = issues.find(
+      (issue) => issue.issueType === "sitemap-noindex-conflict",
+    );
+    expect(conflict?.details).toEqual({
+      robotsMeta: "noindex",
+      xRobotsTag: null,
+    });
+  });
+
+  it("does not flag a sitemap listing on an indexable page", () => {
+    expect(
+      issueTypes(makePage({ isIndexable: true, inSitemap: true })),
+    ).not.toContain("sitemap-noindex-conflict");
+  });
+
+  it("does not flag a non-indexable page outside the sitemap", () => {
+    expect(
+      issueTypes(
+        makePage({
+          isIndexable: false,
+          robotsMeta: "noindex",
+          inSitemap: false,
+        }),
+      ),
+    ).not.toContain("sitemap-noindex-conflict");
+  });
+
   it("flags thin content only on indexable pages", () => {
     expect(issueTypes(makePage({ wordCount: 50 }))).toContain("thin-content");
     expect(

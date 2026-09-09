@@ -216,6 +216,14 @@ export const AUDIT_ISSUE_TYPES = {
     howToFix:
       "If this page should rank, remove the noindex directive. If it's intentional (admin, thank-you, filter pages), no action is needed.",
   },
+  "sitemap-noindex-conflict": {
+    severity: "warning",
+    title: "Sitemap includes a non-indexable page",
+    explanation:
+      "The sitemap lists this URL, but the page itself asks search engines not to index it (noindex). A sitemap does not force Google to index a URL, but publishing both signals at once is a conflict — search engines receive contradictory instructions about whether this URL should appear in the index.",
+    howToFix:
+      "Make the sitemap and the page agree on whether the URL is indexable: if it should appear in search, remove the noindex directive; if it must stay out of search, remove it from the sitemap (and delete the page if it is gone).",
+  },
   "canonicalized-page": {
     severity: "info",
     title: "Canonicalized to another URL",

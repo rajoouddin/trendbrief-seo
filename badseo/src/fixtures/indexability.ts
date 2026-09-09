@@ -12,7 +12,7 @@ const noindexMeta: Fixture = {
   summary: 'Has <meta name="robots" content="noindex"> in the head.',
   lesson:
     "Noindex is often on purpose, like on a thank-you or filter page. An audit flags it so you can catch pages that were hidden from search by mistake.",
-  expectedIssues: ["noindex-page"],
+  expectedIssues: ["noindex-page", "sitemap-noindex-conflict"],
   handler: () =>
     htmlResponse(
       renderPage({
@@ -47,7 +47,7 @@ const noindexHeader: Fixture = {
   summary: "No robots meta tag. The noindex comes in an HTTP header instead.",
   lesson:
     "X-Robots-Tag lives in the response headers, not the HTML. A crawler has to read headers, not just the page, to catch it.",
-  expectedIssues: ["noindex-page"],
+  expectedIssues: ["noindex-page", "sitemap-noindex-conflict"],
   handler: () =>
     htmlResponse(
       renderPage({
