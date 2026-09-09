@@ -328,3 +328,46 @@ Decision evidence:
 
 **Next permitted work: Stage 1 prospect recruitment and problem interviews.
 Do not build a public UI, new detector, paid-data integration or TB-002.**
+
+## TB-001 real-data validation checkpoint — 2026-09-09
+
+TB-001 was exercised against two real, authorised Search Console properties:
+Enarra and Cheltenham Tree Surgery.
+
+Technical findings — TB-001 technical viability is **proven**:
+
+- real Google OAuth/GSC integration works;
+- evidence ingestion works;
+- deterministic detection works;
+- persistence and dedupe work;
+- tenant/project isolation works;
+- repeated runs are idempotent;
+- no DataForSEO or LLM calls are required.
+
+Product-validation findings:
+
+- neither property produced a useful non-brand opportunity under the existing
+  detector;
+- Enarra is brand-dominated;
+- Cheltenham has extremely low search volume;
+- extending the comparison window from 28 to 90 days caused only brand
+  navigation cells on Enarra to cross the 50-impression floor;
+- no useful non-brand cells crossed the floor;
+- no third materially higher-volume SMB property is available on the currently
+  authorised GSC grants.
+
+Product decision — record explicitly:
+
+- DO NOT change the default 28-day window based on current evidence.
+- DO NOT change the >= 50 impression floor based on current evidence.
+- DO NOT change detector logic based on current evidence.
+- DO NOT tune against the existing two properties.
+- TB-001 technical viability is proven.
+- TB-001 product usefulness / willingness-to-pay remains unvalidated.
+- Further detector calibration requires a suitable external property from a
+  qualified validation participant or pilot.
+- Commercial/customer validation remains the gating work before broader product
+  development.
+
+Consequence: no detector, window, threshold, brand-filtering or key-page
+behaviour change is made from this evidence, and no TB-002 work begins.
