@@ -81,6 +81,10 @@ export function LaunchFormCard({
         </form>
 
         <LaunchErrors launchForm={launchForm} />
+
+        <p className="text-xs text-base-content/50">
+          TrendBrief analyses the website — it never modifies it.
+        </p>
       </div>
     </div>
   );

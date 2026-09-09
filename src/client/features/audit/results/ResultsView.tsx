@@ -11,22 +11,26 @@ import {
   IssuesView,
   resolveIssueSeverity,
 } from "@/client/features/audit/results/IssuesView";
+import { HealthSummary } from "@/client/features/audit/results/HealthSummary";
 import { PagesTable } from "@/client/features/audit/results/PagesTable";
 import {
   ExportDropdown,
   PerformanceTable,
 } from "@/client/features/audit/results/ResultsTables";
+import type { RerunDiff } from "@/shared/audit-health";
 
 type ResultsTab = "issues" | "pages" | "performance";
 
 export function ResultsView({
   projectId,
   data,
+  comparison,
   onTabChange,
   tab,
 }: {
   projectId: string;
   data: AuditResultsData;
+  comparison?: RerunDiff;
   tab: string;
   onTabChange: (tab: ResultsTab) => void;
 }) {
@@ -108,7 +112,25 @@ export function ResultsView({
             }}
           />
 
-          {activeTab === "issues" && <IssuesView issues={issues} />}
+          {activeTab === "issues" && (
+            <>
+              <HealthSummary
+                issues={issues}
+                pages={pages}
+                comparison={comparison}
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <h3 className="text-sm font-medium text-base-content/70">
+                  All findings
+                </h3>
+                <span className="text-xs text-base-content/50">
+                  The complete issue list, including noisy and informational
+                  checks, grouped by type.
+                </span>
+              </div>
+              <IssuesView issues={issues} />
+            </>
+          )}
           {activeTab === "pages" && (
             <PagesTable
               pages={pages}

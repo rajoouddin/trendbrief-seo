@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  getAuditComparison,
   getAuditResults,
   getAuditStatus,
   getCrawlProgress,
@@ -94,6 +95,12 @@ function AuditDetail({
     queryKey: ["audit-results", projectId, auditId],
     queryFn: () => getAuditResults({ data: { projectId, auditId } }),
     enabled: isComplete || isFailed,
+  });
+
+  const comparisonQuery = useQuery({
+    queryKey: ["audit-comparison", projectId, auditId],
+    queryFn: () => getAuditComparison({ data: { projectId, auditId } }),
+    enabled: isComplete,
   });
 
   if (statusQuery.isLoading) {
@@ -224,6 +231,7 @@ function AuditDetail({
           <ResultsView
             projectId={projectId}
             data={resultsQuery.data}
+            comparison={comparisonQuery.data}
             tab={tab}
             onTabChange={onTabChange}
           />
