@@ -129,6 +129,28 @@ function isBlockedHost(hostname: string): boolean {
   return false;
 }
 
+/**
+ * The audit targets public websites, so the crawler may only reach HTTP(S)
+ * on their standard ports: 80 for http, 443 for https, or the implicit
+ * default (no explicit port). Arbitrary ports (dev servers on :8080/:3000,
+ * admin panels, SSH on :22) are out of scope for a public-web audit and
+ * widen the SSRF surface, so any URL that would make the crawler fetch a
+ * non-standard port is rejected at every validation point that can lead to
+ * a request.
+ */
+function isPortAllowed(parsed: URL): boolean {
+  if (!parsed.port) return true;
+  const expectedPort =
+    parsed.protocol === "https:"
+      ? 443
+      : parsed.protocol === "http:"
+        ? 80
+        : null;
+  return (
+    expectedPort !== null && Number.parseInt(parsed.port, 10) === expectedPort
+  );
+}
+
 type DnsJsonAnswer = {
   type?: number;
   data?: string;
@@ -203,6 +225,7 @@ export function isCrawlableUrl(url: string): boolean {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     return false;
   }
+  if (!isPortAllowed(parsed)) return false;
   return !isBlockedHost(parsed.hostname);
 }
 
@@ -225,6 +248,10 @@ export async function normalizeAndValidateStartUrl(
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new AppError("VALIDATION_ERROR");
+  }
+
+  if (!isPortAllowed(parsed)) {
+    throw new AppError("CRAWL_TARGET_BLOCKED");
   }
 
   if (isBlockedHost(parsed.hostname)) {
