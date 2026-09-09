@@ -14,7 +14,7 @@ import type {
   IssueDetails,
 } from "@/shared/audit-health/types";
 
-export const PROBLEM: Record<string, string> = {
+const PROBLEM: Record<string, string> = {
   "blocked-page":
     "The site's bot protection challenged our crawler instead of serving the page, so the page could not be audited.",
   "server-error": "The URL returned a 5xx server error.",
@@ -55,25 +55,23 @@ function str(details: IssueDetails, key: string): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-export const PROBLEM_WITH_EVIDENCE: Record<
-  string,
-  (details: IssueDetails) => string
-> = {
-  "title-too-long": (details) =>
-    `The title is ${num(details, "length") ?? "?"} characters — over the ~60 character guideline.`,
-  "title-too-short": (details) =>
-    `The title is ${num(details, "length") ?? "?"} characters — under the ~10 character guideline.`,
-  "meta-description-too-long": (details) =>
-    `The meta description is ${num(details, "length") ?? "?"} characters — over the ~160 character guideline.`,
-  "meta-description-too-short": (details) =>
-    `The meta description is ${num(details, "length") ?? "?"} characters — under the ~70 character guideline.`,
-  "heading-order-skip": () =>
-    "The heading hierarchy skips levels (e.g. H2 followed by H4).",
-  "slow-response": (details) =>
-    `The server took ${num(details, "responseTimeMs") ?? "?"}ms to respond — over the 1.5s guideline.`,
-};
+const PROBLEM_WITH_EVIDENCE: Record<string, (details: IssueDetails) => string> =
+  {
+    "title-too-long": (details) =>
+      `The title is ${num(details, "length") ?? "?"} characters — over the ~60 character guideline.`,
+    "title-too-short": (details) =>
+      `The title is ${num(details, "length") ?? "?"} characters — under the ~10 character guideline.`,
+    "meta-description-too-long": (details) =>
+      `The meta description is ${num(details, "length") ?? "?"} characters — over the ~160 character guideline.`,
+    "meta-description-too-short": (details) =>
+      `The meta description is ${num(details, "length") ?? "?"} characters — under the ~70 character guideline.`,
+    "heading-order-skip": () =>
+      "The heading hierarchy skips levels (e.g. H2 followed by H4).",
+    "slow-response": (details) =>
+      `The server took ${num(details, "responseTimeMs") ?? "?"}ms to respond — over the 1.5s guideline.`,
+  };
 
-export const HOW_TO_VERIFY: Record<string, string> = {
+const HOW_TO_VERIFY: Record<string, string> = {
   "blocked-page":
     "Re-run the audit after adjusting the bot-protection rules. The finding disappears once the crawler can read the page.",
   "server-error":
@@ -132,7 +130,7 @@ export const HOW_TO_VERIFY: Record<string, string> = {
     "Re-run the audit after addressing server time. The finding disappears once the response is consistently under the threshold.",
 };
 
-export const FALLBACK_VERIFY =
+const FALLBACK_VERIFY =
   "Re-run the audit after making the change. This finding should disappear for the affected URL(s).";
 
 export function problemText(issueType: string, details: IssueDetails): string {

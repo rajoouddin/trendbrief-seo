@@ -6,6 +6,7 @@ import {
   type BillingCustomerContext,
 } from "@/server/billing/subscription";
 import { AuditRepository } from "@/server/features/audit/repositories/AuditRepository";
+import { getPreviousCompletedAuditForProject } from "@/server/features/audit/repositories/auditComparisonQueries";
 import {
   AUDIT_LIMITS,
   clampAuditMaxPages,
@@ -241,7 +242,7 @@ async function getComparison(
     return buildRerunDiffUnavailable("incomplete");
   }
 
-  const previous = await AuditRepository.getPreviousCompletedAuditForProject(
+  const previous = await getPreviousCompletedAuditForProject(
     auditId,
     projectId,
   );

@@ -18,7 +18,7 @@ const SEVERITY_RULE: Record<IssueSeverity, string> = {
 /** URLs before a "show all" affordance kicks in. */
 const MAX_VISIBLE_URLS = 8;
 
-export function SeverityDot({ severity }: { severity: IssueSeverity }) {
+function SeverityDot({ severity }: { severity: IssueSeverity }) {
   return (
     <span
       className={`size-2 shrink-0 rounded-full ${SEVERITY_DOT[severity]}`}

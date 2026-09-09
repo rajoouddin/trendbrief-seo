@@ -11,9 +11,7 @@ import {
   type PassedCheck,
   type RerunDiff,
 } from "@/shared/audit-health";
-import {
-  FindingCard,
-} from "@/client/features/audit/results/FindingCard";
+import { FindingCard } from "@/client/features/audit/results/FindingCard";
 import { RerunComparisonPanel } from "@/client/features/audit/results/RerunComparisonPanel";
 
 export function HealthSummary({

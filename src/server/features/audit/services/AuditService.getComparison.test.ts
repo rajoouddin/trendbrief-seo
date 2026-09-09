@@ -14,9 +14,11 @@ vi.mock("cloudflare:workers", () => ({ env: {} }));
 vi.mock("@/server/features/audit/repositories/AuditRepository", () => ({
   AuditRepository: {
     getAuditForProject: getAuditForProjectMock,
-    getPreviousCompletedAuditForProject: getPreviousCompletedAuditMock,
     getIssuesForAudit: getIssuesForAuditMock,
   },
+}));
+vi.mock("@/server/features/audit/repositories/auditComparisonQueries", () => ({
+  getPreviousCompletedAuditForProject: getPreviousCompletedAuditMock,
 }));
 vi.mock("@/server/features/audit/AuditScratchpad", () => ({
   getAuditScratchpad: vi.fn(),

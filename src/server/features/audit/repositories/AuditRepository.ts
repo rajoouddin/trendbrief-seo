@@ -4,7 +4,7 @@
  * audit_pages, audit_issues, and stored Lighthouse results. Link edges live
  * in the per-audit scratchpad Durable Object, not here.
  */
-import { and, count, desc, eq, lte, ne } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   audits,
@@ -273,32 +273,6 @@ async function getLatestAuditForProject(projectId: string) {
   });
 }
 
-/**
- * The most recently *completed* audit for the same project that started
- * before this one — the comparison baseline for the re-run diff. Scoped by
- * projectId (tenant isolation) and keyed off the current audit's project row,
- * so no other tenant's audits can ever appear here.
- */
-async function getPreviousCompletedAuditForProject(
-  auditId: string,
-  projectId: string,
-) {
-  const current = await getAuditForProject(auditId, projectId);
-  if (!current) return null;
-
-  return db.query.audits.findFirst({
-    where: and(
-      eq(audits.projectId, projectId),
-      eq(audits.status, "completed"),
-      // startedAt is ISO-8601 text; lexical ordering matches chronological
-      // ordering when zero-padded, which the app's writers always produce.
-      lte(audits.startedAt, current.startedAt),
-      ne(audits.id, auditId),
-    ),
-    orderBy: desc(audits.startedAt),
-  });
-}
-
 async function getIssuesForAudit(
   auditId: string,
   filters: { severity?: "critical" | "warning" | "info"; issueType?: string },
@@ -463,7 +437,6 @@ export const AuditRepository = {
   insertLighthouseResults,
   getAuditForProject,
   getLatestAuditForProject,
-  getPreviousCompletedAuditForProject,
   getIssuesForAudit,
   getPagesForAudit,
   countBlockedPages,

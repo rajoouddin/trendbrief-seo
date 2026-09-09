@@ -40,11 +40,9 @@ export type {
   FindingEvidence,
   HealthIssueRow,
   HealthPageRow,
-  IssueDetails,
   IssueTypeSummary,
   PassedCheck,
   RerunDiff,
-  ScopeInfo,
 } from "@/shared/audit-health/types";
 export * from "@/shared/audit-health/compare";
 export * from "@/shared/audit-health/evidence";
