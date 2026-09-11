@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canonicalSiteIdentity,
   canonicalUrlKey,
   detectUrlTemplate,
   getOrigin,
@@ -85,6 +86,34 @@ describe("detectUrlTemplate", () => {
 
   it("maps numeric id segments", () => {
     expect(detectUrlTemplate("/products/12345")).toBe("/products/:id");
+  });
+});
+
+describe("canonicalSiteIdentity", () => {
+  it("treats www/non-www, http/https and paths as the same site", () => {
+    const base = "https://example.com/";
+    for (const variant of [
+      "https://www.example.com/a",
+      "http://example.com/a?q=1",
+      "http://www.example.com/sub/path",
+    ]) {
+      expect(canonicalSiteIdentity(variant)).toBe(base);
+    }
+  });
+
+  it("distinguishes different hosts", () => {
+    expect(canonicalSiteIdentity("https://example.com/")).not.toBe(
+      canonicalSiteIdentity("https://other.com/"),
+    );
+    // A subdomain is still a different authority, even though the crawl
+    // boundary allows www equivalence.
+    expect(canonicalSiteIdentity("https://example.com/")).not.toBe(
+      canonicalSiteIdentity("https://blog.example.com/"),
+    );
+  });
+
+  it("fallbacks to a case-folded string on unparseable input", () => {
+    expect(canonicalSiteIdentity("not a url")).toBe("not a url");
   });
 });
 

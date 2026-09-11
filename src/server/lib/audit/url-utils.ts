@@ -65,6 +65,39 @@ export function canonicalUrlKey(url: string): string {
   }
 }
 
+/**
+ * Canonical site identity for an audit's start URL: the origin-level identity
+ * used to decide whether two audits target the same site.
+ *
+ * Forces https, drops a leading "www.", lowercases the hostname, and discards
+ * path/query/fragment — "example.com", "www.example.com", "http://example.com/a"
+ * and "https://example.com/a" are the same site identity. This deliberately
+ * mirrors the audit's own start-URL resolution, which follows apex<->www and
+ * http->https redirects so the crawl anchors on one origin.
+ *
+ * This is a SITE identity only: it must never be used to equate individual
+ * page URLs. The Website Health diff keeps http/https and www/non-www page
+ * URLs distinct in finding identities (see shared/audit-health/compare.ts).
+ */
+export function canonicalSiteIdentity(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.protocol = "https:";
+    parsed.hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    parsed.pathname = "";
+    parsed.search = "";
+    parsed.hash = "";
+    if (parsed.port) parsed.port = "";
+    return parsed.toString();
+  } catch {
+    return url.toLowerCase();
+  }
+}
+
+/**
+ * The crawler's canonical port for a parsed URL: an explicit port, or the
+ * scheme's implicit default.
+ */
 function getEffectivePort(parsed: URL): string {
   if (parsed.port) return parsed.port;
   return parsed.protocol === "https:" ? "443" : "80";
