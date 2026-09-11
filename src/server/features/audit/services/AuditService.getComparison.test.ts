@@ -217,4 +217,33 @@ describe("AuditService.getComparison", () => {
     expect(diff.scopeChanged).toBe(true);
     expect(diff.scopeNote).toContain("page limits");
   });
+
+  it("marks originChanged when the site migrated HTTP to HTTPS", async () => {
+    getAuditForProjectMock.mockResolvedValue(
+      audit({ startUrl: "https://example.com/" }),
+    );
+    getPreviousCompletedAuditMock.mockResolvedValue(
+      audit({ id: "audit-1", startUrl: "http://example.com/" }),
+    );
+    getPagesForAuditMock.mockResolvedValue([page("https://example.com/")]);
+
+    const diff = await AuditService.getComparison("audit-2", "project-1");
+    expect(diff.comparable).toBe(true);
+    expect(diff.sameSite).toBe(true);
+    expect(diff.originChanged?.changed).toBe(true);
+    expect(diff.originChanged?.previousOrigin).toBe("http://example.com");
+    expect(diff.originChanged?.currentOrigin).toBe("https://example.com");
+    expect(diff.originChanged?.note).toContain("HTTP");
+  });
+
+  it("does not mark originChanged when the origin is unchanged", async () => {
+    getAuditForProjectMock.mockResolvedValue(
+      audit({ startUrl: "https://example.com/" }),
+    );
+    getPreviousCompletedAuditMock.mockResolvedValue(PREVIOUS);
+
+    const diff = await AuditService.getComparison("audit-2", "project-1");
+    expect(diff.comparable).toBe(true);
+    expect(diff.originChanged?.changed).toBe(false);
+  });
 });

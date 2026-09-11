@@ -283,6 +283,8 @@ async function getComparison(
     sameSite,
     currentStartedAt: current.startedAt,
     previousStartedAt: previous.startedAt,
+    currentStartUrl: current.startUrl,
+    previousStartUrl: previous.startUrl,
   });
 }
 
