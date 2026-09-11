@@ -60,7 +60,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "warning",
     title: "Duplicate title",
     explanation:
-      "Multiple pages share the same title tag. Search engines use titles to differentiate pages; duplicates make pages compete with each other and depress click-through rates.",
+      "Multiple pages share the same title tag. Search engines may use titles to differentiate pages; duplicates can make pages compete with each other and may depress click-through rates.",
     howToFix:
       "Write a unique title for each page describing its specific content. For templated pages, include the distinguishing attribute (name, category, location) in the template.",
   },
@@ -68,7 +68,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "warning",
     title: "Duplicate meta description",
     explanation:
-      "Multiple pages share the same meta description, so search results show identical snippets and users cannot tell the pages apart.",
+      "Multiple pages share the same meta description, so search engines may show identical snippets and users may not be able to tell the pages apart.",
     howToFix:
       "Write a unique meta description per page, or remove the duplicated one entirely — search engines will generate a snippet from page content, which beats a wrong duplicate.",
   },
@@ -76,7 +76,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "warning",
     title: "Duplicate page content",
     explanation:
-      "Two or more URLs serve byte-identical visible text. Search engines pick one version to index and ignore the rest, and ranking signals get split across the duplicates.",
+      "Two or more URLs serve byte-identical visible text. Search engines may pick one version to index and ignore the rest, and ranking signals can get split across the duplicates.",
     howToFix:
       "Consolidate duplicates: pick the canonical URL, add rel=canonical from the others, and 301-redirect duplicate URLs where possible (common causes: trailing-slash variants, URL parameters, http/https or www variants).",
   },
@@ -132,7 +132,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "warning",
     title: "Thin content",
     explanation:
-      "The page has very little visible text. Thin pages rarely rank, can drag down sitewide quality assessments, and (if the site renders client-side) may indicate content invisible to plain-HTML crawlers.",
+      "The page has very little visible text (an audit heuristic based on word count). Thin pages rarely rank, can drag down sitewide quality assessments, and (if the site renders client-side) may indicate content invisible to plain-HTML crawlers.",
     howToFix:
       "Either expand the page with genuinely useful content, noindex it, or consolidate it into a stronger page. If the content exists but is rendered by JavaScript, ensure it is server-rendered or pre-rendered.",
   },
@@ -164,7 +164,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "info",
     title: "Title too long",
     explanation:
-      "The title exceeds ~60 characters, so search results will truncate it and the ending may be cut off mid-phrase.",
+      "The title exceeds ~60 characters (a heuristic threshold, not a guarantee), so search engines may truncate it and the ending can be cut off mid-phrase.",
     howToFix:
       "Shorten the title to roughly 50–60 characters, front-loading the most important words.",
   },
@@ -172,7 +172,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "info",
     title: "Title too short",
     explanation:
-      "The title is under ~10 characters, which is usually too generic to describe the page or attract clicks.",
+      "The title is under ~10 characters (a heuristic threshold, not a guarantee), which is usually too generic to describe the page or attract clicks.",
     howToFix:
       "Expand the title into a descriptive phrase (roughly 30–60 characters) that states what the page offers.",
   },
@@ -180,7 +180,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "info",
     title: "Meta description too long",
     explanation:
-      "The meta description exceeds ~160 characters, so search engines will truncate the snippet.",
+      "The meta description exceeds ~160 characters (a heuristic threshold, not a guarantee), so search engines may truncate the snippet.",
     howToFix:
       "Trim the description to roughly 70–160 characters while keeping the core message and call to action.",
   },
@@ -188,7 +188,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "info",
     title: "Meta description too short",
     explanation:
-      "The meta description is under ~70 characters. Short descriptions waste the snippet space search results give you, and search engines often ignore them in favor of text pulled from the page.",
+      "The meta description is under ~70 characters (a heuristic threshold, not a guarantee). Short descriptions can waste the snippet space search results give you, and search engines may ignore them in favor of text pulled from the page.",
     howToFix:
       "Expand the description to roughly 70–160 characters that summarize the page and give a reason to click.",
   },
