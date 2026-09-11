@@ -27,6 +27,14 @@ export interface HealthPageRow {
   canonicalUrl?: string | null;
   robotsMeta?: string | null;
   xRobotsTag?: string | null;
+  /** Internal link edges parsed from the page HTML (0/absent = none checked). */
+  internalLinkCount?: number | null;
+  /**
+   * How the crawl resolved the fetch: ok | blocked | error. Null/absent when
+   * the caller only has page rows without fetch provenance; positive
+   * re-evaluation then falls back to statusCode.
+   */
+  fetchClass?: string | null;
 }
 
 /** "fix-first" = primary P0 section; the rest are secondary bands. */
@@ -94,6 +102,13 @@ export interface RerunDiff {
   fixed: IssueTypeSummary[];
   remaining: IssueTypeSummary[];
   newly: IssueTypeSummary[];
+  /**
+   * Previous findings for URLs the current audit did not positively
+   * re-evaluate (page not crawled, or crawled but not evaluable — blocked /
+   * fetch error). Never classified Fixed: absence of the row when the subject
+   * was not re-examined is absence of evidence, not evidence of a fix.
+   */
+  unverified: IssueTypeSummary[];
 }
 
 /** Parsed issue-details JSON, keyed by the issue engine's detail names. */

@@ -4,10 +4,12 @@ const {
   getAuditForProjectMock,
   getPreviousCompletedAuditMock,
   getIssuesForAuditMock,
+  getPagesForAuditMock,
 } = vi.hoisted(() => ({
   getAuditForProjectMock: vi.fn(),
   getPreviousCompletedAuditMock: vi.fn(),
   getIssuesForAuditMock: vi.fn(),
+  getPagesForAuditMock: vi.fn(),
 }));
 
 vi.mock("cloudflare:workers", () => ({ env: {} }));
@@ -15,6 +17,7 @@ vi.mock("@/server/features/audit/repositories/AuditRepository", () => ({
   AuditRepository: {
     getAuditForProject: getAuditForProjectMock,
     getIssuesForAudit: getIssuesForAuditMock,
+    getPagesForAudit: getPagesForAuditMock,
   },
 }));
 vi.mock("@/server/features/audit/repositories/auditComparisonQueries", () => ({
@@ -68,10 +71,27 @@ const issue = (issueType: string, pageUrl: string) => ({
   auditId: "audit-1",
 });
 
+const page = (url: string) => ({
+  id: `page:${url}`,
+  url,
+  statusCode: 200,
+  fetchClass: "ok",
+  redirectUrl: null,
+  title: "Example",
+  metaDescription: "Example page",
+  wordCount: 500,
+  isIndexable: true,
+  crawlDepth: 0,
+  inSitemap: true,
+  internalLinkCount: 0,
+  responseTimeMs: 100,
+});
+
 describe("AuditService.getComparison", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getIssuesForAuditMock.mockReturnValue([]);
+    getPagesForAuditMock.mockResolvedValue([]);
   });
 
   it("fails on an audit outside the requested project (NOT_FOUND)", async () => {
@@ -133,6 +153,10 @@ describe("AuditService.getComparison", () => {
         issue("missing-title", "https://example.com/a"),
         issue("missing-title", "https://example.com/b"),
       ]);
+    getPagesForAuditMock.mockResolvedValue([
+      page("https://example.com/a"),
+      page("https://example.com/b"),
+    ]);
 
     const diff = await AuditService.getComparison("audit-2", "project-1");
 
@@ -143,7 +167,28 @@ describe("AuditService.getComparison", () => {
     expect(diff.fixed[0].sampleUrls).toEqual(["https://example.com/a"]);
     expect(diff.remaining[0].affected).toBe(1);
     expect(diff.newly).toEqual([]);
+    expect(diff.unverified).toEqual([]);
     expect(diff.previous?.startedAt).toBe("2026-08-01T00:00:00.000Z");
+  });
+
+  it("never reports Fixed for URLs the current audit did not re-crawl", async () => {
+    getAuditForProjectMock.mockResolvedValue(audit());
+    getPreviousCompletedAuditMock.mockResolvedValue(PREVIOUS);
+    getIssuesForAuditMock
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([
+        issue("missing-title", "https://example.com/not-recrawled"),
+      ]);
+    // The current audit only crawled the homepage.
+    getPagesForAuditMock.mockResolvedValue([page("https://example.com/")]);
+
+    const diff = await AuditService.getComparison("audit-2", "project-1");
+
+    expect(diff.comparable).toBe(true);
+    expect(diff.fixed).toEqual([]);
+    expect(diff.unverified[0].sampleUrls).toEqual([
+      "https://example.com/not-recrawled",
+    ]);
   });
 
   it("scopes the previous-audit lookup to the same project", async () => {

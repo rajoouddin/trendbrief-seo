@@ -25,6 +25,7 @@ export function RerunComparisonPanel({ diff }: { diff: RerunDiff }) {
     fixed: diff.fixed.reduce((sum, group) => sum + group.affected, 0),
     remaining: diff.remaining.reduce((sum, group) => sum + group.affected, 0),
     newly: diff.newly.reduce((sum, group) => sum + group.affected, 0),
+    unverified: diff.unverified.reduce((sum, group) => sum + group.affected, 0),
   };
 
   return (
@@ -41,7 +42,7 @@ export function RerunComparisonPanel({ diff }: { diff: RerunDiff }) {
           )}
         </div>
 
-        <div className="grid grid-cols-3 divide-x divide-base-300/60">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-base-300/60">
           <TotalCell
             label="Fixed"
             count={totals.fixed}
@@ -51,6 +52,11 @@ export function RerunComparisonPanel({ diff }: { diff: RerunDiff }) {
             label="Remaining"
             count={totals.remaining}
             className="text-warning"
+          />
+          <TotalCell
+            label="Unverified"
+            count={totals.unverified}
+            className="text-base-content/60"
           />
           <TotalCell label="New" count={totals.newly} className="text-error" />
         </div>
@@ -62,11 +68,24 @@ export function RerunComparisonPanel({ diff }: { diff: RerunDiff }) {
           </div>
         )}
 
+        {totals.unverified > 0 && (
+          <p className="text-xs text-base-content/60 rounded-lg border border-base-300 bg-base-200/10 px-3 py-2">
+            Unverified findings are previous issues this audit did not get to
+            re-check (page or broken-link target not crawled this time). They
+            are not counted as fixed.
+          </p>
+        )}
+
         <DiffBreakdown label="Fixed" groups={diff.fixed} tone="success" />
         <DiffBreakdown
           label="Remaining"
           groups={diff.remaining}
           tone="warning"
+        />
+        <DiffBreakdown
+          label="Unverified"
+          groups={diff.unverified}
+          tone="neutral"
         />
         <DiffBreakdown label="New" groups={diff.newly} tone="error" />
       </div>
@@ -95,7 +114,7 @@ function TotalCell({
   );
 }
 
-type DiffTone = "success" | "warning" | "error";
+type DiffTone = "success" | "warning" | "error" | "neutral";
 
 function DiffBreakdown({
   label,
@@ -149,7 +168,9 @@ function toneText(tone: DiffTone): string {
     ? "text-success"
     : tone === "warning"
       ? "text-warning"
-      : "text-error";
+      : tone === "error"
+        ? "text-error"
+        : "text-base-content/60";
 }
 
 function unavailableCopy(reason: RerunDiff["reason"]): string {

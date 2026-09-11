@@ -23,13 +23,13 @@ import {
 import {
   buildRerunDiff,
   buildRerunDiffUnavailable,
-  hostnameOf,
   type RerunDiff,
 } from "@/shared/audit-health";
 import {
   normalizeAndValidateStartUrl,
   resolveStartUrlRedirects,
 } from "@/server/lib/audit/url-policy";
+import { canonicalSiteIdentity } from "@/server/lib/audit/url-utils";
 import { reconcileRunningAudit } from "@/server/features/audit/services/auditReconciler";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 
@@ -249,8 +249,8 @@ async function getComparison(
   if (!previous) return buildRerunDiffUnavailable("no-previous");
 
   const sameSite =
-    hostnameOf(current.startUrl) !== "" &&
-    hostnameOf(current.startUrl) === hostnameOf(previous.startUrl);
+    canonicalSiteIdentity(current.startUrl) ===
+    canonicalSiteIdentity(previous.startUrl);
   if (!sameSite) return buildRerunDiffUnavailable("different-site");
 
   const currentConfig = parseAuditConfig(current.config);
@@ -259,14 +259,19 @@ async function getComparison(
     throw new AppError("INTERNAL_ERROR", "Invalid audit configuration");
   }
 
-  const [currentIssues, previousIssues] = await Promise.all([
+  const [currentIssues, previousIssues, currentPages] = await Promise.all([
     AuditRepository.getIssuesForAudit(auditId, {}),
     AuditRepository.getIssuesForAudit(previous.id, {}),
+    // Fixed classification is coverage-aware: a previous finding is only Fixed
+    // when the current audit actually re-evaluated its page (and target, for
+    // link findings). Missing coverage lands in Unverified, never Fixed.
+    AuditRepository.getPagesForAudit(auditId),
   ]);
 
   return buildRerunDiff({
     currentIssues,
     previousIssues,
+    currentPages,
     currentScope: {
       pagesCrawled: current.pagesCrawled,
       maxPages: currentConfig.maxPages,
