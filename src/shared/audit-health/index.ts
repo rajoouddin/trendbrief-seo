@@ -46,10 +46,7 @@ export type {
 } from "@/shared/audit-health/types";
 export * from "@/shared/audit-health/compare";
 export * from "@/shared/audit-health/evidence";
-export {
-  hostnameOf,
-  normalizeAffectedUrl,
-} from "@/shared/audit-health/identifiers";
+export { normalizeAffectedUrl } from "@/shared/audit-health/identifiers";
 
 // ─── "Fix these first" prioritisation ───────────────────────────────────────
 //
@@ -78,6 +75,40 @@ export const NEVER_FIX_FIRST: readonly string[] = [
   "heading-order-skip",
   "noindex-page",
 ];
+
+/**
+ * Utility/legal URL patterns that carry no indexability value of their own.
+ * Conservative and explicit (single, exact path segments). Used only to
+ * demote the sitemap/noindex conflict for obviously legal/utility footers
+ * (e.g. /disclaimer, /privacy-policy) from the primary "Fix these first"
+ * band to Review — a hygiene note, not a high-value rankability action. Any
+ * conflicting URL that does not match is left in the primary band, and the
+ * finding itself is never dropped.
+ */
+const UTILITY_PATH_SEGMENTS = new Set([
+  "disclaimer",
+  "privacy",
+  "privacy-policy",
+  "terms",
+  "terms-and-conditions",
+  "cookie",
+  "cookies",
+  "accessibility",
+  "legal",
+]);
+
+function isUtilityOrLegalUrl(url: string): boolean {
+  try {
+    const segments = new URL(url).pathname
+      .split("/")
+      .filter((segment) => segment.length > 0);
+    return segments.some((segment) =>
+      UTILITY_PATH_SEGMENTS.has(segment.toLowerCase()),
+    );
+  } catch {
+    return false;
+  }
+}
 
 function resolveSeverity(
   issueType: string,
@@ -174,7 +205,19 @@ export function buildFindings(
     if (affected.length === 0) continue;
 
     const severity = resolveSeverity(issueType, rows[0].severity);
-    const priority = FIX_FIRST_PRIORITY.indexOf(issueType);
+    // A sitemap/noindex conflict on an obviously utility/legal URL (footer
+    // links like /disclaimer) is genuine hygiene to review but normally not a
+    // high-value rankability intervention, so it is demoted out of the
+    // primary section. The conflict stays a real finding either way.
+    const demoteSitemapConflict =
+      issueType === "sitemap-noindex-conflict" &&
+      affected.length > 0 &&
+      affected.every((entry) => isUtilityOrLegalUrl(entry.url));
+    const band = demoteSitemapConflict
+      ? "review"
+      : bandFor(issueType, severity);
+    const priority =
+      band === "fix-first" ? FIX_FIRST_PRIORITY.indexOf(issueType) : undefined;
     findings.push({
       issueType,
       severity,
@@ -183,8 +226,8 @@ export function buildFindings(
       whyItMatters: descriptor?.explanation ?? "",
       whatToDo: descriptor?.howToFix ?? "",
       howToVerify: verifyTextFor(issueType),
-      band: bandFor(issueType, severity),
-      priority: priority >= 0 ? priority : undefined,
+      band,
+      priority,
       affectedCount: affected.length,
       affected,
     });
@@ -221,8 +264,10 @@ export function otherFindings(findings: Finding[]): Finding[] {
 }
 
 // ─── Passed checks ──────────────────────────────────────────────────────────
-// Only claimed when the audit has enough evidence to make the statement:
-// the relevant issue type has zero rows and at least one page was crawled.
+// Only claimed when the audit has enough evidence to make the statement: the
+// relevant issue type has zero rows and at least one page with link evidence
+// was crawled. Wording is evidence-bounded — a truncated or partial crawl
+// never upgrades to "every link resolved".
 
 export function buildPassedChecks(
   issues: HealthIssueRow[],
@@ -232,11 +277,15 @@ export function buildPassedChecks(
   const present = new Set(issues.map((issue) => issue.issueType));
   const checks: PassedCheck[] = [];
 
-  if (!present.has("broken-internal-link")) {
+  const anyLinksChecked = pages.some(
+    (page) => (page.internalLinkCount ?? 0) > 0,
+  );
+  if (anyLinksChecked && !present.has("broken-internal-link")) {
     checks.push({
       id: "no-broken-links",
       title: "No broken internal links found",
-      detail: `Every internal link across ${pages.length} crawled page(s) resolved without a client or server error.`,
+      detail:
+        "No broken internal links were found among the link targets this audit checked.",
     });
   }
   if (!present.has("server-error")) {

@@ -36,7 +36,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "critical",
     title: "Broken internal link",
     explanation:
-      "This page links to an internal URL that returns an error status (4xx/5xx). Broken links waste crawl budget, leak link equity, and frustrate users — they are among the most common and most damaging technical SEO issues.",
+      "This page links to an internal URL that returns an error status (4xx/5xx). Broken links can waste crawl budget and frustrate users, and may weaken the link equity that would otherwise flow through them — they are among the more common technical SEO issues.",
     howToFix:
       "Update the link to point at the correct live URL, or remove it. If the target was moved, prefer linking directly to the new URL rather than relying on a redirect.",
   },
@@ -44,7 +44,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "critical",
     title: "Missing title tag",
     explanation:
-      "The page has no <title>. The title is the strongest on-page relevance signal and the headline shown in search results; without it search engines generate one themselves, usually badly.",
+      "The page has no <title>. Title text is an important relevance and snippet signal, but the exact headline search engines display is not guaranteed; without a title, search engines generate one themselves, often poorly.",
     howToFix:
       "Add a unique, descriptive <title> of roughly 50–60 characters that includes the page's primary topic.",
   },
@@ -124,7 +124,7 @@ export const AUDIT_ISSUE_TYPES = {
     severity: "warning",
     title: "Conflicting canonical signals",
     explanation:
-      "The page declares different canonical URLs in its HTML <link rel=canonical> and its HTTP Link header. When signals conflict, search engines ignore both and choose their own canonical.",
+      "The page declares different canonical URLs in its HTML <link rel=canonical> and its HTTP Link header. When signals conflict, search engines may ignore both and choose their own canonical.",
     howToFix:
       "Pick one canonical URL and declare it in exactly one place (HTML head is the most common); remove or align the other declaration.",
   },

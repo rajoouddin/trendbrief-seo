@@ -37,6 +37,8 @@ function page(overrides: Partial<HealthPageRow>): HealthPageRow {
     isIndexable: true,
     inSitemap: true,
     wordCount: 500,
+    internalLinkCount: 1,
+    fetchClass: "ok",
     ...overrides,
   };
 }
@@ -354,6 +356,57 @@ describe("buildPassedChecks", () => {
       "no-server-errors",
       "canonical-consistent",
     ]);
+  });
+
+  it("withholds the broken-link check without link evidence", () => {
+    const ids = (pages: HealthPageRow[]) =>
+      buildPassedChecks([], pages).map((check) => check.id);
+    expect(ids([page({ internalLinkCount: 0 })])).not.toContain(
+      "no-broken-links",
+    );
+    expect(ids([page({ internalLinkCount: null })])).not.toContain(
+      "no-broken-links",
+    );
+  });
+
+  it("uses evidence-bounded wording for the broken-link check", () => {
+    const checks = buildPassedChecks([], [page({}), page({})]);
+    const broken = checks.find((check) => check.id === "no-broken-links")!;
+    expect(broken.detail).toBe(
+      "No broken internal links were found among the link targets this audit checked.",
+    );
+    // The old wording claimed every internal link resolved — stronger than the
+    // evidence on any crawl, truncated or not.
+    expect(broken.detail).not.toContain("Every internal link");
+    expect(broken.detail).not.toContain("resolved");
+  });
+
+  it("keeps the bounded wording under truncation, partial coverage, and unreached targets", () => {
+    const scenarios = {
+      // maxPages truncation: only a subset of the previous crawl was fetched.
+      truncated: buildPassedChecks([], [page({})]),
+      // partial crawl: some pages fetched, others blocked/error.
+      partial: buildPassedChecks(
+        [],
+        [
+          page({}),
+          page({ url: "https://example.com/blocked", fetchClass: "blocked" }),
+          page({ url: "https://example.com/error", fetchClass: "error" }),
+        ],
+      ),
+      // the target that would have been checked sits beyond the crawl limit.
+      targetBeyondLimit: buildPassedChecks(
+        [],
+        [page({ url: "https://example.com/checked" })],
+      ),
+    };
+    for (const checks of Object.values(scenarios)) {
+      const broken = checks.find((check) => check.id === "no-broken-links")!;
+      expect(broken.detail).toContain(
+        "among the link targets this audit checked",
+      );
+      expect(broken.detail).not.toContain("Every internal link");
+    }
   });
 });
 
