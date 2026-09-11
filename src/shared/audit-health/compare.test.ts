@@ -357,10 +357,13 @@ describe("buildRerunDiff", () => {
       sameSite: true,
       currentStartedAt: "2026-09-01T00:00:00Z",
       previousStartedAt: "2026-08-01T00:00:00Z",
+      currentStartUrl: "https://example.com/",
+      previousStartUrl: "https://example.com/",
     });
     expect(diff.comparable).toBe(true);
     expect(diff.sameSite).toBe(true);
     expect(diff.scopeChanged).toBe(false);
+    expect(diff.originChanged?.changed).toBe(false);
     expect(diff.fixed).toEqual([]);
     expect(diff.newly).toHaveLength(1);
     expect(diff.unverified).toEqual([]);

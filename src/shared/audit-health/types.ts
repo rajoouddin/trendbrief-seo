@@ -25,6 +25,12 @@ export interface HealthPageRow {
   inSitemap: boolean;
   wordCount?: number | null;
   canonicalUrl?: string | null;
+  /** Canonical from the HTTP Link header, when the page row carries it. */
+  headerCanonicalUrl?: string | null;
+  /** Verbatim redirect target for 3xx pages, when persisted. */
+  redirectUrl?: string | null;
+  /** Per-word-bucket content hash used for duplicate-content grouping. */
+  contentHash?: string | null;
   robotsMeta?: string | null;
   xRobotsTag?: string | null;
   /** Internal link edges parsed from the page HTML (0/absent = none checked). */
@@ -93,6 +99,18 @@ export interface RerunDiff {
   sameSite?: boolean;
   scopeChanged?: boolean;
   scopeNote?: string;
+  /**
+   * Site-origin migration between the two audits (HTTP→HTTPS, www→non-www) at
+   * the same canonical site identity. When changed, finding identities that
+   * involve the changed scheme/host are legitimately New or Unverified and must
+   * never be treated as Fixed because of the migration.
+   */
+  originChanged?: {
+    changed: boolean;
+    previousOrigin: string;
+    currentOrigin: string;
+    note?: string;
+  };
   previous: {
     startedAt: string;
     pagesCrawled: number;
@@ -105,8 +123,10 @@ export interface RerunDiff {
   /**
    * Previous findings for URLs the current audit did not positively
    * re-evaluate (page not crawled, or crawled but not evaluable — blocked /
-   * fetch error). Never classified Fixed: absence of the row when the subject
-   * was not re-examined is absence of evidence, not evidence of a fix.
+   * fetch error), or which require issue-specific evidence (link target,
+   * duplicate group, redirect path, link graph) that the current data cannot
+   * provide. Never classified Fixed: absence of the row when the subject was
+   * not re-examined is absence of evidence, not evidence of a fix.
    */
   unverified: IssueTypeSummary[];
 }

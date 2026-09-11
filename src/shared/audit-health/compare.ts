@@ -2,17 +2,26 @@
  * Re-run comparison for Website Health: a deterministic diff between two
  * audits' findings, keyed by (normalized affected URL, issue type, and — where
  * an issue type is per-target — its discriminator), with explicit surfacing of
- * crawl-scope differences instead of silently comparing unlike crawls.
+ * crawl-scope and site-origin differences instead of silently comparing unlike
+ * crawls.
  *
  * A previous finding is only ever classified FIXED when the later audit has
- * positively re-evaluated the affected subject and the finding is no longer
- * present. If the affected URL was not recrawled/evaluated — or, for link-level
- * findings, its target was not re-evaluated — the finding goes to Unverified,
- * never Fixed: absence of a row for a page the crawl missed is absence of
+ * positively re-evaluated the affected subject with issue-type-appropriate
+ * evidence (see verification.ts for the per-type rules) and the finding is no
+ * longer present. When that evidence is missing — the URL was not recrawled, a
+ * peer or hop was omitted, a link target was not re-checked, or the issue type
+ * is unknown to the verification model — the finding goes to Unverified, never
+ * Fixed: absence of a row for a subject the crawl missed is absence of
  * evidence, not evidence of a fix.
  */
 import { getIssueDescriptor } from "@/shared/audit-issues";
 import { normalizeAffectedUrl } from "@/shared/audit-health/identifiers";
+import {
+  isPositivelyResolved,
+  parseIssueDetails,
+  verificationRequirement,
+  wasPageEvaluated,
+} from "@/shared/audit-health/verification";
 import { sort } from "remeda";
 import type {
   HealthIssueRow,
@@ -21,6 +30,11 @@ import type {
   RerunDiff,
   ScopeInfo,
 } from "@/shared/audit-health/types";
+
+export {
+  verificationRequirement,
+  wasPageEvaluated,
+} from "@/shared/audit-health/verification";
 
 interface IssueIdentity {
   issueType: string;
@@ -51,31 +65,12 @@ interface IssueIdentity {
 export function issueIdentityKey(issue: HealthIssueRow): string {
   const base = `${issue.issueType}\u0000${normalizeAffectedUrl(issue.pageUrl)}`;
   if (issue.issueType === "broken-internal-link") {
-    const target = parseDetails(issue.detailsJson).targetUrl;
+    const target = parseIssueDetails(issue.detailsJson).targetUrl;
     if (typeof target === "string" && target.length > 0) {
       return `${base}\u0000${normalizeAffectedUrl(target)}`;
     }
   }
   return base;
-}
-
-function parseDetails(
-  detailsJson: string | null | undefined,
-): Record<string, unknown> {
-  if (!detailsJson) return {};
-  try {
-    const value: unknown = JSON.parse(detailsJson);
-    if (!!value && typeof value === "object" && !Array.isArray(value)) {
-      const result: Record<string, unknown> = {};
-      for (const entry of Object.entries(value)) {
-        result[entry[0]] = entry[1];
-      }
-      return result;
-    }
-    return {};
-  } catch {
-    return {};
-  }
 }
 
 /**
@@ -92,52 +87,6 @@ function buildCoverage(pages: HealthPageRow[]): Map<string, HealthPageRow> {
     if (!coverage.has(normalized)) coverage.set(normalized, page);
   }
   return coverage;
-}
-
-/**
- * Positive re-evaluation evidence for one page row: the crawl reached the URL
- * with a fetchClass of "ok" (not bot-blocked, not a fetch error) and the page
- * responded with a live 2xx/3xx status (an evaluated redirect counts — it was
- * still resolved). A page that now returns 4xx/5xx is *not* positive evidence:
- * its findings may have disappeared because the page died rather than because
- * the underlying issue was fixed, so those findings must not become Fixed.
- */
-export function wasPageEvaluated(page: HealthPageRow | undefined): boolean {
-  if (!page) return false;
-  if (page.fetchClass !== undefined && page.fetchClass !== null) {
-    if (page.fetchClass !== "ok") return false;
-  }
-  const code = page.statusCode;
-  return code !== null && code >= 100 && code < 400;
-}
-
-/**
- * A previous finding is positively resolved when the current audit
- * re-evaluated the affected page, the finding is absent, and — for findings
- * keyed by a linked target — that target was also re-evaluated to a healthy
- * (sub-4xx) response. Unsure re-evaluations (page or target missing from the
- * current crawl, blocked, or still failing) return false -> Unverified.
- */
-function isPositivelyResolved(
-  issue: HealthIssueRow,
-  coverage: Map<string, HealthPageRow>,
-): boolean {
-  const page = coverage.get(normalizeAffectedUrl(issue.pageUrl));
-  if (!wasPageEvaluated(page)) return false;
-
-  if (issue.issueType === "broken-internal-link") {
-    const target = parseDetails(issue.detailsJson).targetUrl;
-    if (typeof target !== "string" || target.length === 0) {
-      // No target detail persisted: page-level re-evaluation is all we have.
-      return true;
-    }
-    const targetPage = coverage.get(normalizeAffectedUrl(target));
-    if (!targetPage || !wasPageEvaluated(targetPage)) return false;
-    const code = targetPage.statusCode;
-    return code !== null && code < 400;
-  }
-
-  return true;
 }
 
 function summaryOf(
@@ -262,6 +211,46 @@ export function compareAuditScope(
   };
 }
 
+interface OriginMigrationInfo {
+  changed: boolean;
+  previousOrigin: string;
+  currentOrigin: string;
+  note?: string;
+}
+
+/**
+ * Detect an HTTP/HTTPS or www/non-www origin migration between two audits'
+ * start URLs. The caller has already established the audits are the same site
+ * under canonicalSiteIdentity (scheme- and www-insensitive); this reports when
+ * their concrete origins still differ in scheme, host form, or port. When it
+ * fires, findings on URLs that changed scheme or host are legitimately New or
+ * Unverified (finding identities are URL-exact), and must never be silently
+ * called Fixed because of the migration.
+ */
+export function compareOrigins(
+  previousStartUrl: string,
+  currentStartUrl: string,
+): OriginMigrationInfo | null {
+  let previous: URL;
+  let current: URL;
+  try {
+    previous = new URL(previousStartUrl);
+    current = new URL(currentStartUrl);
+  } catch {
+    return null;
+  }
+  const previousOrigin = previous.origin;
+  const currentOrigin = current.origin;
+  if (previousOrigin === currentOrigin) {
+    return { changed: false, previousOrigin, currentOrigin };
+  }
+  const note =
+    "This rerun uses a different site origin from the previous audit (for " +
+    "example HTTP→HTTPS or www→non-www). Some findings may appear as New or " +
+    "Unverified because URLs changed.";
+  return { changed: true, previousOrigin, currentOrigin, note };
+}
+
 export function buildRerunDiff(input: {
   currentIssues: HealthIssueRow[];
   previousIssues: HealthIssueRow[];
@@ -271,13 +260,21 @@ export function buildRerunDiff(input: {
   sameSite: boolean;
   currentStartedAt: string;
   previousStartedAt: string;
+  currentStartUrl: string;
+  previousStartUrl: string;
 }): RerunDiff {
   const scope = compareAuditScope(input.previousScope, input.currentScope);
+  const origin = compareOrigins(input.previousStartUrl, input.currentStartUrl);
   return {
     comparable: true,
     sameSite: input.sameSite,
     scopeChanged: scope.changed,
     scopeNote: scope.note,
+    originChanged: origin ?? {
+      changed: false,
+      previousOrigin: "",
+      currentOrigin: "",
+    },
     previous: {
       startedAt: input.previousStartedAt,
       pagesCrawled: input.previousScope.pagesCrawled,
