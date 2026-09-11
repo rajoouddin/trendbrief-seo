@@ -281,6 +281,84 @@ describe("diffFindings — broken-link legacy safety", () => {
   });
 });
 
+describe("diffFindings — sitemap/noindex conflict verification", () => {
+  const noindexPage = (url: string, inSitemap: boolean): HealthPageRow => ({
+    ...evaluatedPage(url),
+    isIndexable: false,
+    inSitemap,
+  });
+
+  it("keeps the conflict in Remaining while it is still reported", () => {
+    const previous = [
+      issue("sitemap-noindex-conflict", "https://example.com/private", {
+        inSitemap: true,
+        noindexVia: "robotsMeta",
+      }),
+    ];
+    const current = [
+      issue("sitemap-noindex-conflict", "https://example.com/private", {}),
+    ];
+    const pages = [noindexPage("https://example.com/private", true)];
+    const diff = diffFindings(current, previous, pages);
+    expect(diff.remaining[0].affected).toBe(1);
+    expect(diff.fixed).toEqual([]);
+  });
+
+  it("never calls a disappeared conflict Fixed when the page is still noindex and sitemap evidence is missing", () => {
+    // Codex reproduction: the page recrawls, stays non-indexable, but sitemap
+    // discovery failed this run, so inSitemap fell back to false and the
+    // finding row disappeared. Absence does not prove the conflict is gone.
+    const previous = [
+      issue("sitemap-noindex-conflict", "https://example.com/private", {
+        inSitemap: true,
+        noindexVia: "robotsMeta",
+      }),
+    ];
+    const pages = [noindexPage("https://example.com/private", false)];
+    const diff = diffFindings([], previous, pages);
+    expect(diff.fixed).toEqual([]);
+    expect(diff.unverified[0].affected).toBe(1);
+  });
+
+  it("keeps a conflict with a never-recrawled page in Unverified", () => {
+    const previous = [
+      issue("sitemap-noindex-conflict", "https://example.com/private", {}),
+    ];
+    const pages: HealthPageRow[] = [];
+    const diff = diffFindings([], previous, pages);
+    expect(diff.fixed).toEqual([]);
+    expect(diff.unverified[0].affected).toBe(1);
+  });
+
+  it("marks a disappeared conflict Fixed only when the page itself became indexable", () => {
+    const previous = [
+      issue("sitemap-noindex-conflict", "https://example.com/private", {}),
+    ];
+    // The page was positively re-evaluated and is indexable now: the conflict
+    // (which requires a non-indexable page) cannot exist, even without new
+    // sitemap evidence.
+    const pages = [
+      { ...evaluatedPage("https://example.com/private"), inSitemap: false },
+    ];
+    const diff = diffFindings([], previous, pages);
+    expect(diff.fixed[0].affected).toBe(1);
+    expect(diff.unverified).toEqual([]);
+  });
+
+  it("never lets a transient sitemap failure produce Fixed", () => {
+    // Even with the page recorded as not-in-sitemap (the fallback when
+    // discovery failed to run this time), a still-noindex page cannot be
+    // proven absent from a successfully evaluated sitemap.
+    const previous = [
+      issue("sitemap-noindex-conflict", "https://example.com/private", {}),
+    ];
+    const pages = [noindexPage("https://example.com/private", false)];
+    const diff = diffFindings([], previous, pages);
+    expect(diff.fixed).toEqual([]);
+    expect(diff.unverified[0].affected).toBe(1);
+  });
+});
+
 describe("diffFindings — unknown issue types", () => {
   it("never marks a disappeared unknown issue Fixed", () => {
     const previous = [issue("mystery-issue", "https://example.com/a")];

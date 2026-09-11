@@ -19,6 +19,16 @@ const ok = () => new Response("ok", { status: 200 });
 
 const ALLOW_ALL_ROBOTS = "User-agent: *\nDisallow:";
 
+/** A body stream that yields once and then fails mid-read. */
+function bodyStreamThatFails(): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    async start(controller) {
+      controller.enqueue(new TextEncoder().encode("partial-body"));
+      throw new Error("connection reset during body read");
+    },
+  });
+}
+
 describe("fetchDiscoveryDocument", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -320,5 +330,105 @@ describe("discoverUrls — sitemap redirect handling", () => {
     const { urls } = await discoverUrls(ORIGIN, 10);
     expect(urls).toEqual([]);
     expect(requestedUrls()).not.toContain("http://127.0.0.1:8080/child.xml");
+  });
+});
+
+describe("discoverUrls — body-stream and parse degradation", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubFetch(routes: Record<string, () => Response>) {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input instanceof Request ? input.url : input);
+      const route = routes[url];
+      return route ? Promise.resolve(route()) : Promise.resolve(ok());
+    });
+  }
+
+  function requestedUrls(): string[] {
+    return vi
+      .mocked(fetch)
+      .mock.calls.map(([input]) =>
+        String(input instanceof Request ? input.url : input),
+      );
+  }
+
+  it("degrades like unavailable robots when the robots.txt body read fails mid-stream", async () => {
+    stubFetch({
+      "https://example.com/robots.txt": () =>
+        new Response(bodyStreamThatFails(), { status: 200 }),
+      "https://example.com/sitemap.xml": () => sitemapXml([]),
+    });
+
+    const { robotsText } = await discoverUrls(ORIGIN);
+    expect(robotsText).toBeNull();
+    // Discovery continues to the default sitemap instead of aborting.
+    expect(requestedUrls()).toContain("https://example.com/sitemap.xml");
+  });
+
+  it("degrades like an unavailable body when a sitemap body read fails mid-stream", async () => {
+    stubFetch({
+      "https://example.com/robots.txt": () =>
+        new Response(ALLOW_ALL_ROBOTS, { status: 200 }),
+      "https://example.com/sitemap.xml": () =>
+        new Response(bodyStreamThatFails(), {
+          status: 200,
+          headers: { "content-type": "application/xml" },
+        }),
+    });
+
+    const { urls } = await discoverUrls(ORIGIN);
+    expect(urls).toEqual([]);
+    // Body-read failures are not timeouts, so the existing timeout-only retry
+    // path must not fire: exactly one attempt, then graceful degradation.
+    expect(
+      requestedUrls().filter(
+        (url) => url === "https://example.com/sitemap.xml",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("degrades gracefully when the sitemap document body cannot be parsed as XML", async () => {
+    stubFetch({
+      "https://example.com/robots.txt": () =>
+        new Response(ALLOW_ALL_ROBOTS, { status: 200 }),
+      "https://example.com/sitemap.xml": () =>
+        new Response("<<<<", {
+          status: 200,
+          headers: { "content-type": "application/xml" },
+        }),
+    });
+
+    const { urls } = await discoverUrls(ORIGIN);
+    expect(urls).toEqual([]);
+    expect(
+      requestedUrls().filter(
+        (url) => url === "https://example.com/sitemap.xml",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("still discovers pages from a healthy sitemap alongside a broken one", async () => {
+    stubFetch({
+      "https://example.com/robots.txt": () =>
+        new Response("Sitemap: /broken.xml\nSitemap: /good.xml\n", {
+          status: 200,
+        }),
+      "https://example.com/broken.xml": () =>
+        new Response(bodyStreamThatFails(), {
+          status: 200,
+          headers: { "content-type": "application/xml" },
+        }),
+      "https://example.com/good.xml": () =>
+        sitemapXml("https://example.com/healthy"),
+    });
+
+    const { urls } = await discoverUrls(ORIGIN, 10);
+    expect(urls).toEqual(["https://example.com/healthy"]);
   });
 });

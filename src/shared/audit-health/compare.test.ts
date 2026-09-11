@@ -4,6 +4,7 @@ import {
   buildRerunDiffUnavailable,
   compareAuditScope,
   diffFindings,
+  hasMeaningfulRerunState,
   issueIdentityKey,
 } from "@/shared/audit-health/compare";
 import type {
@@ -376,5 +377,58 @@ describe("buildRerunDiff", () => {
     expect(diff.reason).toBe("no-previous");
     expect(diff.fixed).toEqual([]);
     expect(diff.unverified).toEqual([]);
+  });
+});
+
+describe("hasMeaningfulRerunState", () => {
+  it("treats a missing comparison as meaningless", () => {
+    expect(hasMeaningfulRerunState(undefined)).toBe(false);
+  });
+
+  it("treats a comparable comparison as meaningful even with zero totals", () => {
+    const diff = buildRerunDiffUnavailable("no-previous");
+    expect(
+      hasMeaningfulRerunState({
+        ...diff,
+        comparable: true,
+        fixed: [],
+        remaining: [],
+        newly: [],
+        unverified: [],
+      }),
+    ).toBe(true);
+  });
+
+  it("treats an all-error rerun comparison (previous rows unverified) as meaningful", () => {
+    const diff = buildRerunDiff({
+      currentIssues: [],
+      previousIssues: [issue("missing-title", "https://example.com/a")],
+      currentPages: [],
+      currentScope: { pagesCrawled: 3, maxPages: 50 },
+      previousScope: { pagesCrawled: 50, maxPages: 50 },
+      sameSite: true,
+      currentStartedAt: "2026-09-01T00:00:00Z",
+      previousStartedAt: "2026-08-01T00:00:00Z",
+      currentStartUrl: "https://example.com/",
+      previousStartUrl: "https://example.com/",
+    });
+    expect(diff.comparable).toBe(true);
+    expect(diff.unverified).toHaveLength(1);
+    expect(hasMeaningfulRerunState(diff)).toBe(true);
+  });
+
+  it("does not treat an ordinary first audit (no previous) as meaningful UI on its own", () => {
+    expect(
+      hasMeaningfulRerunState(buildRerunDiffUnavailable("no-previous")),
+    ).toBe(false);
+  });
+
+  it("treats non-comparable states that communicate a condition as meaningful", () => {
+    expect(
+      hasMeaningfulRerunState(buildRerunDiffUnavailable("different-site")),
+    ).toBe(true);
+    expect(
+      hasMeaningfulRerunState(buildRerunDiffUnavailable("incomplete")),
+    ).toBe(true);
   });
 });

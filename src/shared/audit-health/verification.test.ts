@@ -50,7 +50,6 @@ describe("verificationRequirement — issue-aware classes", () => {
       "multiple-h1",
       "canonical-conflict",
       "canonicalized-page",
-      "sitemap-noindex-conflict",
       "no-outgoing-links",
       "slow-response",
       "server-error",
@@ -75,6 +74,9 @@ describe("verificationRequirement — issue-aware classes", () => {
     expect(verificationRequirement("redirect-loop")).toBe("redirectPath");
     expect(verificationRequirement("orphan-page")).toBe("linkGraph");
     expect(verificationRequirement("deep-page")).toBe("linkGraph");
+    expect(verificationRequirement("sitemap-noindex-conflict")).toBe(
+      "sitemapConflict",
+    );
   });
 
   it("defaults unknown issue types to unsupported", () => {

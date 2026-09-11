@@ -29,6 +29,8 @@ type VerificationRequirement =
   | "redirectPath"
   /** The internal-link graph is required; not verifiable from persisted data. */
   | "linkGraph"
+  /** Sitemap membership must be positively re-evaluated. */
+  | "sitemapConflict"
   /** Unknown/unverifiable — never Fixed. */
   | "unsupported";
 
@@ -53,7 +55,6 @@ const PAGE_LOCAL_ISSUE_TYPES: ReadonlySet<string> = new Set([
   "multiple-h1",
   "heading-order-skip",
   "noindex-page",
-  "sitemap-noindex-conflict",
   "canonical-conflict",
   "canonicalized-page",
   "thin-content",
@@ -83,6 +84,7 @@ export function verificationRequirement(
   if (issueType === "redirect-chain" || issueType === "redirect-loop") {
     return "redirectPath";
   }
+  if (issueType === "sitemap-noindex-conflict") return "sitemapConflict";
   if (LINK_GRAPH_ISSUE_TYPES.has(issueType)) return "linkGraph";
   return "unsupported";
 }
@@ -133,6 +135,7 @@ export function wasPageEvaluated(page: HealthPageRow | undefined): boolean {
  * - brokenTarget: a valid target detail plus that target re-evaluated healthy.
  * - duplicateGroup: the duplicate group recomputed and dissolved.
  * - redirectPath: the current redirect path reconstructed and resolved.
+ * - sitemapConflict: the page became indexable (positive, page-level proof).
  * - linkGraph / unsupported: no positive evidence available -> Unverified.
  *
  * Unsure re-evaluations (page, target, peer, or hop missing from the current
@@ -154,6 +157,8 @@ export function isPositivelyResolved(
       return isDuplicateGroupResolved(issue, coverage);
     case "redirectPath":
       return isRedirectPathResolved(issue, coverage);
+    case "sitemapConflict":
+      return isSitemapNoindexConflictResolved(issue, coverage);
     case "linkGraph":
       // Orphanhood (and graph-derived depth) depends on the internal-link
       // graph, which this feature does not persist. Absence of an orphan row
@@ -164,6 +169,31 @@ export function isPositivelyResolved(
       // Unknown/legacy issue types: no verification rule, so no Fixed.
       return false;
   }
+}
+
+/**
+ * Sitemap/noindex-conflict positive verification.
+ *
+ * The finding requires BOTH a non-indexable page AND positive sitemap
+ * membership, so it cannot be considered page-local: a disappeared row can
+ * mean the page became indexable, OR the sitemap discovery failed or was
+ * truncated this run and inSitemap silently fell back to false.
+ *
+ * The only reliable positive evidence available in persisted data is the page
+ * itself becoming indexable: the conflict (which requires a non-indexable
+ * page) then cannot exist, regardless of sitemap evidence. A still-noindex
+ * page can never be proven absent from a successfully evaluated sitemap from
+ * the comparison model's data, so that case stays Unverified rather than
+ * being inferred Fixed from finding absence.
+ */
+function isSitemapNoindexConflictResolved(
+  issue: HealthIssueRow,
+  coverage: Map<string, HealthPageRow>,
+): boolean {
+  const page = coverage.get(normalizeAffectedUrl(issue.pageUrl));
+  if (!page || !wasPageEvaluated(page)) return false;
+  if (page.isIndexable) return true;
+  return false;
 }
 
 /**

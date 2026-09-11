@@ -308,3 +308,25 @@ export function buildRerunDiffUnavailable(
     unverified: [],
   };
 }
+
+/**
+ * Whether a comparison carries rerun state worth rendering even on an
+ * otherwise empty results page (no findings, no passed checks).
+ *
+ * A comparable comparison always qualifies: on an empty page its previous
+ * findings land in Unverified (e.g. an all-error rerun — every previous row
+ * exists but nothing was positively re-evaluated), which is exactly the state
+ * a rerun needs to surface. Non-comparable states that communicate a real
+ * condition (the rerun targeted a different site, or the current audit did not
+ * complete) also qualify. A missing previous audit on a first run is the
+ * ordinary empty first-audit state and does not need UI on its own.
+ */
+export function hasMeaningfulRerunState(
+  comparison: RerunDiff | undefined,
+): boolean {
+  if (!comparison) return false;
+  if (comparison.comparable) return true;
+  return (
+    comparison.reason === "different-site" || comparison.reason === "incomplete"
+  );
+}

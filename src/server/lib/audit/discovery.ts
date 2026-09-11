@@ -36,7 +36,7 @@ export interface RobotsResult {
   sitemapUrls: string[];
 }
 
-export interface DiscoveryFetchResult {
+interface DiscoveryFetchResult {
   /** Final non-redirect response, or null when the fetch failed or was refused. */
   response: Response | null;
   /** Final URL after any followed redirects (null when refused/unresolvable). */
@@ -172,7 +172,15 @@ async function fetchRobotsTxtText(origin: string): Promise<string | null> {
   }
 
   if (!result.response.ok) return null;
-  return (await result.response.text()).slice(0, MAX_ROBOTS_TXT_BYTES);
+  try {
+    return (await result.response.text()).slice(0, MAX_ROBOTS_TXT_BYTES);
+  } catch (error) {
+    // A mid-stream body-read failure is the same signal as an unreachable
+    // robots.txt: discovery degrades to "everything allowed" instead of
+    // letting the body error escape and abort the whole discovery phase.
+    console.warn(`Failed to read robots.txt body for ${origin}:`, error);
+    return null;
+  }
 }
 
 /** Deterministic: same text in, same result out. Null = everything allowed. */
@@ -325,24 +333,37 @@ async function fetchSitemapDocumentWithRetry(
       return { nestedSitemaps: [], pageUrls: [], timedOut: false };
     }
 
-    const body = await readBodyCapped(result.response, MAX_SITEMAP_BYTES);
-    if (
-      body === null ||
-      !isProbablySitemapXml(result.response.headers.get("content-type"), body)
-    ) {
+    try {
+      const body = await readBodyCapped(result.response, MAX_SITEMAP_BYTES);
+      if (
+        body === null ||
+        !isProbablySitemapXml(result.response.headers.get("content-type"), body)
+      ) {
+        return { nestedSitemaps: [], pageUrls: [], timedOut: false };
+      }
+
+      const parsed = xmlParser.parse(body) as unknown;
+      const sections = getParsedSitemapSections(parsed);
+      const nestedSitemaps = getSitemapLocations(sections.sitemap)
+        .map((loc) => normalizeUrl(loc, finalUrl))
+        .filter((loc): loc is string => loc !== null);
+      const pageUrls = getSitemapLocations(sections.url)
+        .map((loc) => normalizeUrl(loc, finalUrl))
+        .filter((loc): loc is string => loc !== null);
+
+      return { nestedSitemaps, pageUrls, timedOut: false };
+    } catch (error) {
+      // A mid-stream body-read or parse failure means this sitemap document is
+      // unusable — the same safe outcome as an unavailable body — so it degrades
+      // to "no URLs from this document" instead of escaping discovery. The
+      // caller counts it as a failed doc and warns; the existing timeout-retry
+      // path above is untouched.
+      console.warn(
+        `Skipping unusable sitemap document ${normalizedSitemapUrl}:`,
+        error,
+      );
       return { nestedSitemaps: [], pageUrls: [], timedOut: false };
     }
-
-    const parsed = xmlParser.parse(body) as unknown;
-    const sections = getParsedSitemapSections(parsed);
-    const nestedSitemaps = getSitemapLocations(sections.sitemap)
-      .map((loc) => normalizeUrl(loc, finalUrl))
-      .filter((loc): loc is string => loc !== null);
-    const pageUrls = getSitemapLocations(sections.url)
-      .map((loc) => normalizeUrl(loc, finalUrl))
-      .filter((loc): loc is string => loc !== null);
-
-    return { nestedSitemaps, pageUrls, timedOut: false };
   }
 
   return {

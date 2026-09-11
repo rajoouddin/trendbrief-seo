@@ -4,6 +4,7 @@ import {
   buildFindings,
   buildPassedChecks,
   fixTheseFirst,
+  hasMeaningfulRerunState,
   otherFindings,
   type FindingBand,
   type HealthIssueRow,
@@ -31,7 +32,11 @@ export function HealthSummary({
     [issues, pages],
   );
 
-  if (findings.length === 0 && passed.length === 0) {
+  if (
+    findings.length === 0 &&
+    passed.length === 0 &&
+    !hasMeaningfulRerunState(comparison)
+  ) {
     return null;
   }
 
