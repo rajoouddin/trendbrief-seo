@@ -20,9 +20,12 @@ import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { canonicalSiteIdentity } from "@/server/lib/audit/url-utils";
 
-// Completed audits per project are bounded by subscription capacity; a hard
-// cap only guards a pathological history.
-const MAX_CANDIDATE_AUDITS = 200;
+// Candidates are walked newest-to-oldest in bounded pages. Paging (instead of
+// an arbitrary cap on the candidate window) keeps a genuinely older previous
+// audit of the same site findable on busy projects; the page bound only guards
+// a pathological history.
+const CANDIDATE_PAGE_SIZE = 200;
+const MAX_CANDIDATE_PAGES = 50;
 
 /**
  * The most recently *completed* prior audit for the same project and the same
@@ -38,23 +41,32 @@ export async function getPreviousCompletedAuditForProject(
   });
   if (!current) return null;
 
-  const candidates = await db.query.audits.findMany({
-    where: and(
-      eq(audits.projectId, projectId),
-      eq(audits.status, "completed"),
-      // startedAt is ISO-8601 text; lexical ordering matches chronological
-      // ordering when zero-padded, which the app's writers always produce.
-      lte(audits.startedAt, current.startedAt),
-      ne(audits.id, auditId),
-    ),
-    orderBy: desc(audits.startedAt),
-    limit: MAX_CANDIDATE_AUDITS,
-  });
+  const where = and(
+    eq(audits.projectId, projectId),
+    eq(audits.status, "completed"),
+    // startedAt is ISO-8601 text; lexical ordering matches chronological
+    // ordering when zero-padded, which the app's writers always produce.
+    lte(audits.startedAt, current.startedAt),
+    ne(audits.id, auditId),
+  );
 
   const siteIdentity = canonicalSiteIdentity(current.startUrl);
-  return (
-    candidates.find(
+  for (
+    let offset = 0;
+    offset < MAX_CANDIDATE_PAGES * CANDIDATE_PAGE_SIZE;
+    offset += CANDIDATE_PAGE_SIZE
+  ) {
+    const candidates = await db.query.audits.findMany({
+      where,
+      orderBy: desc(audits.startedAt),
+      limit: CANDIDATE_PAGE_SIZE,
+      offset,
+    });
+    if (candidates.length === 0) break;
+    const match = candidates.find(
       (candidate) => canonicalSiteIdentity(candidate.startUrl) === siteIdentity,
-    ) ?? null
-  );
+    );
+    if (match) return match;
+  }
+  return null;
 }
