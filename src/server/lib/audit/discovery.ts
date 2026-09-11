@@ -3,6 +3,7 @@
  */
 import robotsParser from "robots-parser";
 import { XMLParser } from "fast-xml-parser";
+import { isCrawlableUrl } from "./url-policy";
 import { isSameOrigin, normalizeUrl } from "./url-utils";
 
 const SITEMAP_FETCH_TIMEOUT_MS = 15_000;
@@ -16,6 +17,9 @@ const MAX_SITEMAP_DEPTH = 3;
 const MAX_SITEMAP_DOCS = 300;
 const SITEMAP_CONCURRENCY = 5;
 const SITEMAP_RETRIES = 1;
+// Discovery redirects are followed manually and bounded like the rest of the
+// crawler (the start-URL probe uses the same budget).
+const DISCOVERY_REDIRECT_HOPS = 5;
 // Sitemap shards can legally reach 50 MB and SITEMAP_CONCURRENCY of them are
 // read at once, so unbounded reads can exhaust Worker memory. Oversized
 // shards are skipped whole — truncated XML would not parse anyway, and real
@@ -32,24 +36,143 @@ export interface RobotsResult {
   sitemapUrls: string[];
 }
 
+export interface DiscoveryFetchResult {
+  /** Final non-redirect response, or null when the fetch failed or was refused. */
+  response: Response | null;
+  /** Final URL after any followed redirects (null when refused/unresolvable). */
+  finalUrl: string | null;
+  /** Set when the fetch itself threw (e.g. timed out); no response exists. */
+  error?: unknown;
+  /** True when a redirect destination was refused by policy/scope before fetch. */
+  rejected: boolean;
+}
+
+/**
+ * Bounded manual redirect handling for discovery fetches (robots.txt, sitemaps,
+ * sitemap-index children).
+ *
+ * The audit's page fetches already use `redirect: "manual"`; discovery used the
+ * runtime's automatic redirect following, which trusts a server-supplied
+ * Location header before any validation runs. A hostile or compromised site
+ * could point /robots.txt or /sitemap.xml at an internal metadata endpoint, a
+ * private-address literal, a non-standard port, or another origin, and the
+ * automatic redirect would perform that fetch.
+ *
+ * Every hop re-runs the crawler's URL policy on the destination BEFORE the next
+ * request: scheme must be HTTP(S), the port must match the scheme's standard
+ * (80/443 or the implicit default), blocked hostnames and literal-IP /
+ * private-address / metadata rules must pass, and — like the rest of discovery —
+ * the target must stay within the audit's same-origin crawl scope. Refused
+ * destinations are never fetched; `rejected` distinguishes a policy refusal
+ * from a network failure so callers can warn accurately.
+ *
+ * DNS TOCTOU note (unchanged, documented here so it stays accurate): per-hop
+ * out-of-band DNS lookups would make discovery prohibitively slow, so hostnames
+ * that are not literals resolve inside the fetch itself. Only the start URL
+ * performs an out-of-band resolution check (normalizeAndValidateStartUrl in
+ * url-policy.ts). A hostname that resolves to a private address at fetch time
+ * but not at validation time remains the documented, accepted limitation —
+ * validation covers URL shape, port, blocklist, literal addresses, and scope.
+ */
+export async function fetchDiscoveryDocument(
+  url: string,
+  origin: string,
+  timeoutMs: number,
+): Promise<DiscoveryFetchResult> {
+  let current = normalizeUrl(url);
+  if (current === null || !isDiscoveryTargetAllowed(current, origin)) {
+    return { response: null, finalUrl: null, rejected: true };
+  }
+
+  for (let hop = 0; hop <= DISCOVERY_REDIRECT_HOPS; hop++) {
+    let response: Response;
+    try {
+      response = await fetchDiscoveryRequest(current, timeoutMs);
+    } catch (error) {
+      console.warn(`Discovery fetch failed for ${current}:`, error);
+      return { response: null, finalUrl: current, rejected: false, error };
+    }
+
+    if (response.status < 300 || response.status >= 400) {
+      return { response, finalUrl: current, rejected: false };
+    }
+
+    if (hop === DISCOVERY_REDIRECT_HOPS) {
+      // The hop budget is exhausted; the next hop would not be followed.
+      return { response: null, finalUrl: null, rejected: false };
+    }
+
+    const location = response.headers.get("location");
+    if (!location) {
+      return { response, finalUrl: current, rejected: false };
+    }
+
+    let next: URL;
+    try {
+      next = new URL(location, current);
+    } catch {
+      return { response, finalUrl: current, rejected: false };
+    }
+
+    const nextNormalized = normalizeUrl(next.toString());
+    if (
+      nextNormalized === null ||
+      !isDiscoveryTargetAllowed(nextNormalized, origin)
+    ) {
+      // Refused before any request is made to the destination.
+      return { response: null, finalUrl: null, rejected: true };
+    }
+    current = nextNormalized;
+  }
+
+  return { response: null, finalUrl: null, rejected: false };
+}
+
+function isDiscoveryTargetAllowed(url: string, origin: string): boolean {
+  return isCrawlableUrl(url) && isSameOrigin(url, origin);
+}
+
+function fetchDiscoveryRequest(
+  url: string,
+  timeoutMs: number,
+): Promise<Response> {
+  return fetch(url, {
+    redirect: "manual",
+    headers: { "User-Agent": "OpenSEO-Audit/1.0" },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+}
+
+const MAX_ROBOTS_TXT_TIMEOUT_MS = 10_000;
+
 /**
  * Fetch the raw robots.txt body (null = missing/unreachable). Kept separate
  * from parsing so Workflows can checkpoint the text as durable step state and
  * re-derive the parsed result deterministically on replay.
+ *
+ * Redirects are followed manually with the same policy as every other
+ * discovery fetch: each hop's destination is validated before it is requested,
+ * and an unsafe redirect (non-standard port, blocked/metadata/private host,
+ * cross-origin) means robots.txt is skipped rather than fetched from there.
  */
 async function fetchRobotsTxtText(origin: string): Promise<string | null> {
-  try {
-    const response = await fetch(`${origin}/robots.txt`, {
-      headers: { "User-Agent": "OpenSEO-Audit/1.0" },
-      signal: AbortSignal.timeout(10_000),
-    });
+  const result = await fetchDiscoveryDocument(
+    `${origin}/robots.txt`,
+    origin,
+    MAX_ROBOTS_TXT_TIMEOUT_MS,
+  );
 
-    if (!response.ok) return null;
-    return (await response.text()).slice(0, MAX_ROBOTS_TXT_BYTES);
-  } catch (error) {
-    console.warn("Failed to fetch robots.txt:", error);
+  if (result.response === null) {
+    if (result.rejected) {
+      console.warn(
+        `Blocked a disallowed robots.txt redirect for ${origin}; skipping robots.txt.`,
+      );
+    }
     return null;
   }
+
+  if (!result.response.ok) return null;
+  return (await result.response.text()).slice(0, MAX_ROBOTS_TXT_BYTES);
 }
 
 /** Deterministic: same text in, same result out. Null = everything allowed. */
@@ -158,7 +281,10 @@ async function readBodyCapped(
   return new TextDecoder().decode(joined);
 }
 
-async function fetchSitemapDocumentWithRetry(sitemapUrl: string): Promise<{
+async function fetchSitemapDocumentWithRetry(
+  sitemapUrl: string,
+  origin: string,
+): Promise<{
   nestedSitemaps: string[];
   pageUrls: string[];
   timedOut: boolean;
@@ -171,45 +297,52 @@ async function fetchSitemapDocumentWithRetry(sitemapUrl: string): Promise<{
   let lastError: unknown = null;
 
   for (let attempt = 0; attempt <= SITEMAP_RETRIES; attempt++) {
-    try {
-      const response = await fetch(normalizedSitemapUrl, {
-        headers: { "User-Agent": "OpenSEO-Audit/1.0" },
-        signal: AbortSignal.timeout(SITEMAP_FETCH_TIMEOUT_MS),
-      });
-
-      const finalUrl = normalizeUrl(response.url, normalizedSitemapUrl);
-      if (!finalUrl || !isSameOrigin(finalUrl, normalizedSitemapUrl)) {
+    const result = await fetchDiscoveryDocument(
+      normalizedSitemapUrl,
+      origin,
+      SITEMAP_FETCH_TIMEOUT_MS,
+    );
+    if (result.response === null) {
+      if (result.rejected) {
+        console.warn(
+          `Blocked a disallowed sitemap redirect (${normalizedSitemapUrl}); skipping.`,
+        );
         return { nestedSitemaps: [], pageUrls: [], timedOut: false };
       }
-
-      if (!response.ok) {
-        return { nestedSitemaps: [], pageUrls: [], timedOut: false };
-      }
-
-      const body = await readBodyCapped(response, MAX_SITEMAP_BYTES);
-      if (
-        body === null ||
-        !isProbablySitemapXml(response.headers.get("content-type"), body)
-      ) {
-        return { nestedSitemaps: [], pageUrls: [], timedOut: false };
-      }
-
-      const parsed = xmlParser.parse(body) as unknown;
-      const sections = getParsedSitemapSections(parsed);
-      const nestedSitemaps = getSitemapLocations(sections.sitemap)
-        .map((loc) => normalizeUrl(loc, finalUrl))
-        .filter((loc): loc is string => loc !== null);
-      const pageUrls = getSitemapLocations(sections.url)
-        .map((loc) => normalizeUrl(loc, finalUrl))
-        .filter((loc): loc is string => loc !== null);
-
-      return { nestedSitemaps, pageUrls, timedOut: false };
-    } catch (error) {
-      lastError = error;
-      if (!isTimeoutError(error) || attempt === SITEMAP_RETRIES) {
+      lastError = result.error;
+      if (!isTimeoutError(lastError) || attempt === SITEMAP_RETRIES) {
         break;
       }
+      continue;
     }
+
+    const finalUrl = result.finalUrl ?? normalizedSitemapUrl;
+    if (!finalUrl || !isSameOrigin(finalUrl, normalizedSitemapUrl)) {
+      return { nestedSitemaps: [], pageUrls: [], timedOut: false };
+    }
+
+    if (!result.response.ok) {
+      return { nestedSitemaps: [], pageUrls: [], timedOut: false };
+    }
+
+    const body = await readBodyCapped(result.response, MAX_SITEMAP_BYTES);
+    if (
+      body === null ||
+      !isProbablySitemapXml(result.response.headers.get("content-type"), body)
+    ) {
+      return { nestedSitemaps: [], pageUrls: [], timedOut: false };
+    }
+
+    const parsed = xmlParser.parse(body) as unknown;
+    const sections = getParsedSitemapSections(parsed);
+    const nestedSitemaps = getSitemapLocations(sections.sitemap)
+      .map((loc) => normalizeUrl(loc, finalUrl))
+      .filter((loc): loc is string => loc !== null);
+    const pageUrls = getSitemapLocations(sections.url)
+      .map((loc) => normalizeUrl(loc, finalUrl))
+      .filter((loc): loc is string => loc !== null);
+
+    return { nestedSitemaps, pageUrls, timedOut: false };
   }
 
   return {
@@ -269,7 +402,10 @@ export async function discoverUrls(
         seenSitemapDocs.add(normalizedUrl);
         fetchedDocs += 1;
 
-        const result = await fetchSitemapDocumentWithRetry(normalizedUrl);
+        const result = await fetchSitemapDocumentWithRetry(
+          normalizedUrl,
+          origin,
+        );
         if (
           result.pageUrls.length === 0 &&
           result.nestedSitemaps.length === 0
