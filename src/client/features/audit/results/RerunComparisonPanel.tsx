@@ -68,11 +68,22 @@ export function RerunComparisonPanel({ diff }: { diff: RerunDiff }) {
           </div>
         )}
 
+        {diff.originChanged?.changed && (
+          <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-sm">
+            <CircleSlash2 className="mt-0.5 size-4 shrink-0 text-warning" />
+            <p className="text-base-content/75">
+              {diff.originChanged.note ??
+                "This rerun uses a different site origin from the previous audit (for example HTTP→HTTPS or www→non-www). Some findings may appear as New or Unverified because URLs changed."}
+            </p>
+          </div>
+        )}
+
         {totals.unverified > 0 && (
           <p className="text-xs text-base-content/60 rounded-lg border border-base-300 bg-base-200/10 px-3 py-2">
-            Unverified findings are previous issues this audit did not get to
-            re-check (page or broken-link target not crawled this time). They
-            are not counted as fixed.
+            Unverified findings are previous issues this audit could not
+            positively re-check: the affected page, broken-link target,
+            duplicate peers, or redirect path were not fully re-evaluated this
+            time. They are not counted as fixed.
           </p>
         )}
 
@@ -145,7 +156,7 @@ function DiffBreakdown({
               className={`text-xs tabular-nums ${toneText(tone)}`}
               title={group.sampleUrls.join("\n")}
             >
-              {group.affected} {group.affected === 1 ? "URL" : "URLs"}
+              {group.affected} {group.affected === 1 ? "finding" : "findings"}
             </span>
           </li>
         ))}

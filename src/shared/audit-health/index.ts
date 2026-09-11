@@ -25,6 +25,7 @@ import {
   verifyTextFor,
 } from "@/shared/audit-health/evidence";
 import { normalizeAffectedUrl } from "@/shared/audit-health/identifiers";
+import { wasPageEvaluated } from "@/shared/audit-health/compare";
 import type {
   Finding,
   FindingBand,
@@ -265,9 +266,9 @@ export function otherFindings(findings: Finding[]): Finding[] {
 
 // ─── Passed checks ──────────────────────────────────────────────────────────
 // Only claimed when the audit has enough evidence to make the statement: the
-// relevant issue type has zero rows and at least one page with link evidence
-// was crawled. Wording is evidence-bounded — a truncated or partial crawl
-// never upgrades to "every link resolved".
+// relevant issue type has zero rows and at least one page was positively
+// evaluated. Wording is evidence-bounded — a truncated or partial crawl never
+// upgrades to "everything resolved".
 
 export function buildPassedChecks(
   issues: HealthIssueRow[],
@@ -277,30 +278,25 @@ export function buildPassedChecks(
   const present = new Set(issues.map((issue) => issue.issueType));
   const checks: PassedCheck[] = [];
 
-  const anyLinksChecked = pages.some(
-    (page) => (page.internalLinkCount ?? 0) > 0,
-  );
-  if (anyLinksChecked && !present.has("broken-internal-link")) {
-    checks.push({
-      id: "no-broken-links",
-      title: "No broken internal links found",
-      detail:
-        "No broken internal links were found among the link targets this audit checked.",
-    });
-  }
-  if (!present.has("server-error")) {
+  // The broken-link check is deliberately withheld: persisted page rows only
+  // record how many internal links were parsed (internalLinkCount), not how
+  // many link targets were actually fetched and evaluated. Without evidence
+  // that at least one relevant target was checked, "no broken links" would
+  // overstate the crawl, so the green badge stays off silently.
+  const anyPageEvaluated = pages.some(wasPageEvaluated);
+  if (anyPageEvaluated && !present.has("server-error")) {
     checks.push({
       id: "no-server-errors",
       title: "No server errors detected",
-      detail: "No crawled page returned a 5xx response.",
+      detail: "No successfully analysed page returned a 5xx response.",
     });
   }
-  if (!present.has("canonical-conflict")) {
+  if (anyPageEvaluated && !present.has("canonical-conflict")) {
     checks.push({
       id: "canonical-consistent",
       title: "Canonical signals consistent",
       detail:
-        "No page declared conflicting canonical signals between its HTML and HTTP headers.",
+        "No conflicting canonical signals were found among the successfully analysed pages.",
     });
   }
   if (pages.some((page) => page.inSitemap)) {

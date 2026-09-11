@@ -328,7 +328,6 @@ describe("buildPassedChecks", () => {
       [page({}), page({})],
     );
     expect(checks.map((c) => c.id)).toEqual([
-      "no-broken-links",
       "no-server-errors",
       "canonical-consistent",
       "sitemap-found",
@@ -352,16 +351,21 @@ describe("buildPassedChecks", () => {
   it("withholds the sitemap check when the audit saw no sitemap", () => {
     const checks = buildPassedChecks([], [page({ inSitemap: false })]);
     expect(checks.map((c) => c.id)).toEqual([
-      "no-broken-links",
       "no-server-errors",
       "canonical-consistent",
     ]);
   });
 
-  it("withholds the broken-link check without link evidence", () => {
+  it("never claims no-broken-links from parsed link counts alone", () => {
+    // internalLinkCount records how many internal links were parsed, not how
+    // many link targets were actually fetched and evaluated — so the green
+    // no-broken-links badge is withheld outright.
     const ids = (pages: HealthPageRow[]) =>
       buildPassedChecks([], pages).map((check) => check.id);
     expect(ids([page({ internalLinkCount: 0 })])).not.toContain(
+      "no-broken-links",
+    );
+    expect(ids([page({ internalLinkCount: 5 })])).not.toContain(
       "no-broken-links",
     );
     expect(ids([page({ internalLinkCount: null })])).not.toContain(
@@ -369,44 +373,33 @@ describe("buildPassedChecks", () => {
     );
   });
 
-  it("uses evidence-bounded wording for the broken-link check", () => {
-    const checks = buildPassedChecks([], [page({}), page({})]);
-    const broken = checks.find((check) => check.id === "no-broken-links")!;
-    expect(broken.detail).toBe(
-      "No broken internal links were found among the link targets this audit checked.",
+  it("withholds page-derived passed checks when no page was successfully analysed", () => {
+    const checks = buildPassedChecks(
+      [],
+      [
+        { ...page({}), statusCode: 403, fetchClass: "blocked" },
+        { ...page({}), statusCode: 0, fetchClass: "error" },
+      ],
     );
-    // The old wording claimed every internal link resolved — stronger than the
-    // evidence on any crawl, truncated or not.
-    expect(broken.detail).not.toContain("Every internal link");
-    expect(broken.detail).not.toContain("resolved");
+    // Sitemap discovery does not depend on page evaluation; the other checks
+    // need at least one successfully analysed page.
+    expect(checks.map((c) => c.id)).toEqual(["sitemap-found"]);
   });
 
-  it("keeps the bounded wording under truncation, partial coverage, and unreached targets", () => {
-    const scenarios = {
-      // maxPages truncation: only a subset of the previous crawl was fetched.
-      truncated: buildPassedChecks([], [page({})]),
-      // partial crawl: some pages fetched, others blocked/error.
-      partial: buildPassedChecks(
-        [],
-        [
-          page({}),
-          page({ url: "https://example.com/blocked", fetchClass: "blocked" }),
-          page({ url: "https://example.com/error", fetchClass: "error" }),
-        ],
-      ),
-      // the target that would have been checked sits beyond the crawl limit.
-      targetBeyondLimit: buildPassedChecks(
-        [],
-        [page({ url: "https://example.com/checked" })],
-      ),
-    };
-    for (const checks of Object.values(scenarios)) {
-      const broken = checks.find((check) => check.id === "no-broken-links")!;
-      expect(broken.detail).toContain(
-        "among the link targets this audit checked",
-      );
-      expect(broken.detail).not.toContain("Every internal link");
-    }
+  it("uses evidence-bounded wording for the server-error check", () => {
+    const checks = buildPassedChecks([], [page({})]);
+    const server = checks.find((check) => check.id === "no-server-errors")!;
+    expect(server.detail).toContain("successfully analysed page");
+  });
+
+  it("bounds the canonical passed copy to successfully analysed pages", () => {
+    const checks = buildPassedChecks([], [page({})]);
+    const canonical = checks.find(
+      (check) => check.id === "canonical-consistent",
+    )!;
+    expect(canonical.detail).toBe(
+      "No conflicting canonical signals were found among the successfully analysed pages.",
+    );
   });
 });
 
