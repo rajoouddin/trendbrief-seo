@@ -4,6 +4,8 @@ Status: **PRODUCT / COMMERCIAL VALIDATION APPROVED; TB-002 NOT AUTHORISED**.
 
 This is the durable handoff for TrendBrief SEO. Resume from this record rather than relying on prior chat history.
 
+TrendBrief is a product in Raj's private operating estate, and it has no dependency on any other product. For how it relates to the estate, see [`TRENDBRIEF_ENTERPRISE_CONTEXT.md`](TRENDBRIEF_ENTERPRISE_CONTEXT.md). That context changes nothing about the permitted next work recorded below.
+
 ## Product direction
 
 TrendBrief has been repositioned away from the earlier newsletter/trending-topic direction into a potential low-cost, action-oriented SEO SaaS.
